@@ -1,0 +1,20 @@
+{
+  "name": "gpgfs",
+  "private": false,
+  "version": "0.1.0",
+  "description": "gpgfs",
+  "author": "RosHub Inc. <code@roshub.io>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/datapartyjs/gpgfs.git"
+  },
+  "files": [
+    "src"
+  ],
+  "main": "src/index.js",
+  "dependencies": {
+    "@dataparty/bouncer-model": "^1.0.1",
+    "debug": "^4.1.1"
+  }
+}
