@@ -48,6 +48,8 @@ class File {
 
   async create(){
     if(this.exists()){ throw new Error('file exists') }
+
+    await this.saveMetadata
     /*
       if exists() throw
       this.save() // save an empty file
@@ -56,6 +58,7 @@ class File {
 
   async read(){
     //load & decrypt
+
   }
 
   async save(content, {meta,empty}){
@@ -69,12 +72,60 @@ class File {
     */
   }
 
-  async saveMetadata({meta}){
-
+  async getMetadata(){
+    this.metadata = await this.root.readFile( this.metadataPath, true, 'bucket_meta')
+    return this.metadata   
   }
 
-  async getMetadata(){
+  async setMetadata(value){
+    const nowTime = (new Date()).toISOString()
+    let newMetadata = Object.assign({lastchanged: nowTime}, value)
 
+    await this.root.writeFile( this.metadataPath,
+      newMetadata,
+      {
+        model: 'object_meta',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
+
+    if(!this.metadata){
+      debug('creating metadata')
+      this.metadata = newMetadata
+    }
+    else {
+      debug('replacing metadata')
+      this.metadata = newMetadata
+    }
+  }
+
+  async getLastchange(){
+    this.lastchange = await this.root.readFile( this.lastchangePath, true, 'object_lastchange')
+    return this.lastchange  
+  }
+  
+  async setLastchange(value){
+    const nowTime = (new Date()).toISOString()
+    let newLastchange = Object.assign({lastchanged: nowTime}, value)
+
+    await this.root.writeFile( this.lastchangePath,
+      newLastchange,
+      {
+        model: 'object_lastchange',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
+
+    if(!this.lastchange){
+      debug('creating lastchange')
+      this.lastchange = newLastchange
+    }
+    else {
+      debug('replacing lastchange')
+      this.lastchange = newLastchange
+    }
   }
 
   async assertIsTrusted(){}

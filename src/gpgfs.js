@@ -170,6 +170,8 @@ class Gpgfs {
 
     if(decrypt){
       content = await this.keychain.decrypt(rawContent)
+
+      /** @todo  verify signatures - https://github.com/datapartyjs/gpg-promised/issues/9  */
     }
 
     if(model){
