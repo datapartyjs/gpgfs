@@ -120,7 +120,7 @@ class Gpgfs {
 
       if(options.model){
         debug('writeFile - using validator model - ', options.model)
-        content = await this.root.validateModel(options.model ,content)
+        content = await this.validateModel(options.model, content)
       }
 
       if(options.encrypt){
@@ -169,11 +169,14 @@ class Gpgfs {
     })
 
     if(decrypt){
+      debug('readFile - decrypt')
       content = await this.keychain.decrypt(rawContent)
     }
 
     if(model){
+      debug('readFile - json parse')
       const jsonContent = JSON.parse(content)
+      debug('readFile - validate')
       content = await this.validateModel(model, jsonContent)
     }
 

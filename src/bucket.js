@@ -71,16 +71,20 @@ class Bucket {
     await this.root.cacheWhoami()
     let toList = [ this.root.whoami ]
 
-    if(this.metadata.meta && this.metadata.meta.length > 0){
-      toList = toList.concat(this.metadata.meta)
-    }
+    if(this.metadata){
 
-    if(this.metadata.readers && this.metadata.readers.length > 0){
-      toList = toList.concat(this.metadata.readers)
-    }
+      if(this.metadata.meta && this.metadata.meta.length > 0){
+        toList = toList.concat(this.metadata.meta)
+      }
 
-    if(this.metadata.writers && this.metadata.writers.length > 0){
-      toList = toList.concat(this.metadata.writers)
+      if(this.metadata.readers && this.metadata.readers.length > 0){
+        toList = toList.concat(this.metadata.readers)
+      }
+
+      if(this.metadata.writers && this.metadata.writers.length > 0){
+        toList = toList.concat(this.metadata.writers)
+      }
+
     }
 
     return toList
