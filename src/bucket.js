@@ -21,13 +21,15 @@ class Bucket {
   }
 
   exists(){
-    return this.root.fileExists( this.path )    
+    return this.root.fileExists( this.path )
   }
 
   async create(){
     //this.id = new ObjectId()
     debug('create -', this.id)
     this.root.touchDir(this.path)
+    this.root.touchDir(this.path + '/objects')
+    this.root.touchDir(this.path + '/object-meta')
 
     const nowTime = (new Date()).toISOString()
 
@@ -65,40 +67,9 @@ class Bucket {
     return '/buckets/bucket-'+this.id.toHexString()
   }
 
-  async getIndex(){
-    const rawData = await this.root.readFile( this.path + '/index' )
-    
-    const index = JSON.parse(await this.root.keychain.decrypt(rawData))
-
-    this.index = await this.root.validateModel('bucket_index', index)
-    return this.index
-  }
-
-  async getMetadata(){
-    const rawData = await this.root.readFile( this.path + '/metadata' )
-    
-    const metadata = JSON.parse(await this.root.keychain.decrypt(rawData))
-
-    this.metadata = await this.root.validateModel('bucket_meta', metadata)
-    return this.metadata
-  }
-
-  async setMetadata(value){
-    const nowTime = (new Date()).toISOString()
-    let valWithTime = Object.assign({lastchanged: nowTime}, value)
-    const validated = await this.root.validateModel('bucket_meta',valWithTime)
-
-    if(!this.metadata){
-      debug('creating metadata')
-      this.metadata = validated
-    }
-    else {
-      debug('replacing metadata')
-      this.metadata = validated
-    }
-
-    const whoami = (await this.root.keychain.whoami())[0]
-    let toList = [ whoami ]
+  async getReciepents(){
+    await this.root.cacheWhoami()
+    let toList = [ this.root.whoami ]
 
     if(this.metadata.meta && this.metadata.meta.length > 0){
       toList = toList.concat(this.metadata.meta)
@@ -112,13 +83,42 @@ class Bucket {
       toList = toList.concat(this.metadata.writers)
     }
 
-    const secureText = await this.root.keychain.encrypt(
-      JSON.stringify(this.metadata,null,2),
-      toList,
-      whoami
+    return toList
+  }
+
+  async getIndex(){
+    const indexPath = this.path + '/index'
+    this.index = await this.root.readFile( indexPath, true, 'bucket_index')
+    return this.index   
+  }
+
+  async getMetadata(){
+    const metadataPath = this.path + '/metadata'
+    this.metadata = await this.root.readFile( metadataPath, true, 'bucket_meta')
+    return this.metadata
+  }
+
+  async setMetadata(value){
+    const nowTime = (new Date()).toISOString()
+    let newMetadata = Object.assign({lastchanged: nowTime}, value)
+
+    await this.root.writeFile( this.path + '/metadata',
+      newMetadata,
+      {
+        model: 'bucket_meta',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
     )
 
-    await this.root.writeFile( this.path + '/metadata', secureText )
+    if(!this.metadata){
+      debug('creating metadata')
+      this.metadata = newMetadata
+    }
+    else {
+      debug('replacing metadata')
+      this.metadata = newMetadata
+    }
   }
 
 
@@ -131,39 +131,25 @@ class Bucket {
         type: 'bucket_meta'
       }
     }, value)
-    const validated = await this.root.validateModel('bucket_index',newIndex)
+
+
+    await this.root.writeFile( this.path + '/metadata',
+      newIndex,
+      {
+        model: 'bucket_index',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
 
     if(!this.index){
       debug('creating index')
-      this.index = validated
+      this.index = newIndex
     }
     else {
       debug('replacing index')
-      this.index = validated
+      this.index = newIndex
     }
-
-    const whoami = (await this.root.keychain.whoami())[0]
-    let toList = [ whoami ]
-
-    if(this.metadata.meta && this.metadata.meta.length > 0){
-      toList = toList.concat(this.metadata.meta)
-    }
-
-    if(this.metadata.readers && this.metadata.readers.length > 0){
-      toList = toList.concat(this.metadata.readers)
-    }
-
-    if(this.metadata.writers && this.metadata.writers.length > 0){
-      toList = toList.concat(this.metadata.writers)
-    }
-
-    const secureText = await this.root.keychain.encrypt(
-      JSON.stringify(this.index,null,2),
-      toList,
-      whoami
-    )
-
-    await this.root.writeFile( this.path + '/index', secureText )
   }
 }
 

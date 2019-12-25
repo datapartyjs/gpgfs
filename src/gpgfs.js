@@ -3,7 +3,7 @@ const fs = require('fs')
 const Path = require('path')
 const mkdirp = require('mkdirp')
 const GpgPromised = require('gpg-promised')
-const debug = require('debug')('gpgfs')
+const debug = require('debug')('gpgfs.gpgfs')
 const sanitize = require('sanitize-filename')
 
 const GpgFsBucket = require('./bucket')
@@ -18,6 +18,17 @@ class Gpgfs {
     this.validator = new Validator()
 
     this._bucketCache = {}
+    this._whoamiCache = null
+  }
+
+  get whoami(){
+    return this._whoamiCache
+  }
+
+  async cacheWhoami(){
+    if(!this._whoamiCache){
+      this._whoamiCache = (await this.keychain.whoami())[0]
+    }
   }
 
   async open(){
@@ -101,7 +112,26 @@ class Gpgfs {
     return await this.validator.validate(type, value)
   }
 
-  async writeFile(path, data){
+  async writeFile(path, data, options){
+
+    let content = data
+
+    if(options){
+
+      if(options.model){
+        debug('writeFile - using validator model - ', options.model)
+        content = await this.root.validateModel(options.model ,content)
+      }
+
+      if(options.encrypt){
+
+        if(typeof content !== 'string'){ content = JSON.stringify(content) }
+
+        await this.cacheWhoami()
+        content = await this.keychain.encrypt(content, options.to, this.whoami)
+      }
+    }
+
     return new Promise((resolve,reject)=>{
 
       const realPath = this.filePath(path)
@@ -122,8 +152,8 @@ class Gpgfs {
     })
   }
 
-  async readFile(path){
-    return new Promise((resolve,reject)=>{
+  async readFile(path, decrypt=false, model){
+    let content = await new Promise((resolve,reject)=>{
 
       const realPath = this.filePath(path)
 
@@ -137,6 +167,17 @@ class Gpgfs {
       })
 
     })
+
+    if(decrypt){
+      content = await this.keychain.decrypt(rawContent)
+    }
+
+    if(model){
+      const jsonContent = JSON.parse(content)
+      content = await this.validateModel(model, jsonContent)
+    }
+
+    return content
   }
 
   async getBucketIds(){

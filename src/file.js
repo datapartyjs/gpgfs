@@ -1,12 +1,49 @@
+const ObjectId = require('bson-objectid')
+const debug = require('debug')('gpgfs.File')
+
 class File {
-  constructor(bucket, path, {meta, readers, writers, cleartext=false}){
-    //
+  constructor(bucket, id, objectPath){
+    this.bucket = bucket
+    this.id = new ObjectId(id)
+    this.objectPath = objectPath
+
+    this.content = null
+    this.metadata = null
+    this.lastchange = null
   }
 
-  
+  async open(){
+    await this.getMetadata()
+    await this.getLastchange()
+    this.objectPath = this.metadata.path
+    debug('loaded ', this.objectPath)
+  }
 
   exists(){
-    //
+    const contentExists = this.root.fileExists( this.path )
+    const metadataExists = this.root.fileExists( this.lastchangePath )
+    const lastchangeExists = this.root.fileExists( this.path )
+  }
+
+  get path(){
+    return Path.join(
+      this.bucket.path,
+      'objects/object-' + this.id.toHexString()
+    )
+  }
+
+  get metadataPath(){
+    return Path.join(
+      this.bucket.path,
+      'object-meta/object-' + this.id.toHexString() +'-meta'
+    )
+  }
+
+  get lastchangePath(){
+    return Path.join(
+      this.bucket.path,
+      'object-meta/object-' + this.id.toHexString() +'-lastchange'
+    )
   }
 
   async create(){
@@ -17,8 +54,8 @@ class File {
     */
   }
 
-  async access(){
-    //load & decrypt meta
+  async read(){
+    //load & decrypt
   }
 
   async save(content, {meta,empty}){
@@ -37,17 +74,7 @@ class File {
   }
 
   async getMetadata(){
-    /*
-     decrypt metadata into
 
-       {
-        data, // json parsed & validated
-        raw,  // raw decrypted text
-        raw_verification, // raw verification data
-        verification      // parsed verification data
-       }
-
-    */
   }
 
   async assertIsTrusted(){}
@@ -59,3 +86,5 @@ class File {
     */
   }
 }
+
+module.exports = File

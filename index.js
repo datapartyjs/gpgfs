@@ -9,12 +9,11 @@ async function main(){
   //! Trust user
   await securefs.keychain.trustCard()
 
-  const bucket = await securefs.bucket('test-one')
+  const bucket = await securefs.bucket('staging')
 
   if(!bucket.exists()){
     console.log('creating bucket')
     await bucket.create()
-
   }
 
   console.log(bucket)
