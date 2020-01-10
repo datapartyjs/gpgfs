@@ -30,6 +30,7 @@ class Bucket {
     this.root.touchDir(this.path)
     this.root.touchDir(this.path + '/objects')
     this.root.touchDir(this.path + '/object-meta')
+    this.root.touchDir(this.path + '/object-lastchange')
 
     const nowTime = (new Date()).toISOString()
 
@@ -90,6 +91,16 @@ class Bucket {
     return toList
   }
 
+  async getObjectIds(){
+    const objectPaths = (await this.readDir('/objects'))
+      .map(item=>{
+        return item.replace('object-','')
+      })
+
+    debug('found ids', objectPaths)
+    return objectPaths
+  }
+
   async getIndex(){
     const indexPath = this.path + '/index'
     this.index = await this.root.readFile( indexPath, true, 'bucket_index')
@@ -137,7 +148,7 @@ class Bucket {
     }, value)
 
 
-    await this.root.writeFile( this.path + '/metadata',
+    await this.root.writeFile( this.path + '/index',
       newIndex,
       {
         model: 'bucket_index',

@@ -17,6 +17,19 @@ async function main(){
   }
 
   console.log(bucket)
+
+  const file = await bucket.file('directory-1/foo/bar/filet-test.txt')
+
+  if(!file.exists()){
+    console.log('creating file')
+    await file.create()
+    await file.save('hello world')
+  }
+
+  const content = await file.read()
+  const metadata = await file.getMetadata()
+
+  console.log('file-content [', content, ']')
 }
 
 

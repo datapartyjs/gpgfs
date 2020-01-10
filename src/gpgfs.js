@@ -38,9 +38,6 @@ class Gpgfs {
     //read bucket meta
   }
 
-  async readBucketMeta(){
-    //
-  }
 
   static get Bucket () {
     return GpgFsBucket
@@ -70,14 +67,6 @@ class Gpgfs {
 
     return bucketList
   }
-
-  /*async getBucket({name, id, path}){
-    //
-  }*/
-
-  /*async createBucket({name, meta}){
-    //
-  }*/
 
   async bucket(name){
 
@@ -114,6 +103,7 @@ class Gpgfs {
 
   async writeFile(path, data, options){
 
+    debug('writeFile -', path, options)
     let content = data
 
     if(options){
@@ -137,9 +127,9 @@ class Gpgfs {
       const realPath = this.filePath(path)
 
       debug("Writing file: " + realPath)
-      fs.writeFile(realPath, data, {
+      fs.writeFile(realPath, content, {
         mode: 0o600
-      }, (err,data)=>{
+      }, (err)=>{
         if(err){
           debug('failed to write file - ',path, '\nerror -',err)
           return reject(err)
@@ -170,7 +160,7 @@ class Gpgfs {
 
     if(decrypt){
       debug('readFile - decrypt')
-      content = await this.keychain.decrypt(rawContent)
+      content = await this.keychain.decrypt(content)
 
       /** @todo  verify signatures - https://github.com/datapartyjs/gpg-promised/issues/9  */
     }
@@ -251,12 +241,3 @@ class Gpgfs {
 }
 
 module.exports = Gpgfs
-
-/*
-
-/gpgfs/buckets/bucket-${bucketId}/meta
-/gpgfs/buckets/bucket-${bucketId}/index
-/gpgfs/buckets/bucket-${bucketId}/object-meta/object-${objectId}-meta
-/gpgfs/buckets/bucket-${bucketId}/objects/object-${objectId}
-
-*/
