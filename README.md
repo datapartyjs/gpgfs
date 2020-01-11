@@ -2,6 +2,7 @@
 
 gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpgfs file system
 
+ * Documentation - [datapartyjs.github.io/gpgfs/](https://datapartyjs.github.io/gpgfs/)
 
 ## Goals
 
@@ -14,59 +15,60 @@ gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpg
 ## API Example
 
 ```js
-const gpgfs = require('gpgfs')
-let securefs = new gpgfs()
+const gpgfs = require('../src/index')
 
-await securefs.open()
-await securefs.keychain.trustCard()  //! Trust user
 
-const bucket = await securefs.bucket('staging')
+async function main(){
+  const securefs = new gpgfs()
 
-if(!bucket.exists()){
-  console.log('creating bucket')
-  await bucket.create()
+  await securefs.open()
+
+  //! Trust user
+  await securefs.keychain.trustCard()
+
+  const bucket = await securefs.bucket('staging')
+
+  if(!bucket.exists()){
+    console.log('creating bucket')
+    await bucket.create()
+  }
+
+  console.log(bucket)
+
+  const file = await bucket.file('directory-1/foo/bar/file-test.txt')
+
+  if(!file.exists()){
+    console.log('creating file', file.id)
+    await file.create()
+
+    file.content = 'hello world\n'
+    await file.save()
+  }
+
+  const content = await file.read()
+  const metadata = await file.getMetadata()
+
+  console.log('file-content [', content, ']')
+  console.log('metadata', metadata)
+  console.log('lastchange', await file.getLastchange())
 }
-
-const file = await bucket.file('directory-1/foo/bar/filet-test.txt')
-
-if(!file.exists()){
-  console.log('creating file')
-  await file.create()
-  await file.save('hello world')
-}
-
-const content = await file.read()
-const metadata = await file.getMetadata()
-
-console.log('file-content [', content, ']')
 ```
-
-
 
 
 ## Filesystem `.gpgfs`
 
-gpgfs stores buckets in a `.gpgfs` file stored anywhere on a host file system.
+Bucket content is stored in the `.gpgfs` directory, locatable anywhere on a host file system. All files are encrypted as PGP armored output
 
 ```console
 .gpgfs/
 └── buckets/
-    └── bucket-5e0482a09f17a420cbd20382/
+    └── bucket-5e193906a536b1515fcd427d/
         ├── index
         ├── metadata
         ├── object-lastchange/
+        │   └── object-5e193908a536b1515fcd427e-lastchange
         ├── object-meta/
+        │   └── object-5e193908a536b1515fcd427e-meta
         └── objects/
+            └── object-5e193908a536b1515fcd427e
 ```
-
-### Buckets
-
-
-
-#### Bucket Index
-
-#### Bucket Metadata
-
-#### Object Meta
-
-#### Objects
