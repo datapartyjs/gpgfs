@@ -18,13 +18,13 @@ async function main(){
 
   console.log(bucket)
 
-  const file = await bucket.file('directory-1/foo/bar/filet-test.txt')
+  const file = await bucket.file('directory-1/foo/bar/file-test.txt')
 
   if(!file.exists()){
     console.log('creating file', file.id)
     await file.create()
 
-    file.content = 'hello world'
+    file.content = 'hello world\n'
     await file.save()
   }
 
@@ -32,6 +32,8 @@ async function main(){
   const metadata = await file.getMetadata()
 
   console.log('file-content [', content, ']')
+  console.log('metadata', metadata)
+  console.log('lastchange', await file.getLastchange())
 }
 
 

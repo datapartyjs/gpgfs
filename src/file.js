@@ -1,8 +1,11 @@
 const md5 = require('md5')
 const Path = require('path')
+const crypto = require('crypto')
 const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.File')
+
+const Utils = require('./utils')
 
 class File {
   constructor({bucket, id, filePath}){
@@ -62,7 +65,7 @@ class File {
   async getReciepents(){
     await this.bucket.root.cacheWhoami()
     const bucketToList = await this.bucket.getReciepents()
-    let toList = [ this.bucket.root.whoami ]
+    let toList = [ ...bucketToList ]
 
     if(this.metadata){
 
@@ -80,7 +83,7 @@ class File {
 
     }
 
-    return toList
+    return Utils.uniqueArray(toList)
   }
 
   async read(){
@@ -110,6 +113,7 @@ class File {
   }
 
   async setMetadata(){
+    const toList = await this.getReciepents()
     const nowTime = (new Date()).toISOString()
     let newMetadata = Object.assign({lastchanged: nowTime}, {
       owner: this.bucket.metadata.owner,
@@ -156,7 +160,10 @@ class File {
   async updateLastChange(){
     const nowTime = (new Date()).toISOString()
 
-    const md5sum = md5(this.content)
+    //const md5sum = md5(this.content)
+    const hash = {
+      sha256: crypto.createHash('sha256').update(this.content).digest('hex')
+    }
 
     await this.bucket.root.cacheWhoami()
 
@@ -171,7 +178,7 @@ class File {
       },
       size: this.content.length,
       actor: this.bucket.root.whoami,
-      md5sum
+      hash
     })
 
     debug('updateLastChange -', newLastchange)

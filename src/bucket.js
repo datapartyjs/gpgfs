@@ -3,7 +3,9 @@ const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.Bucket')
 const Hoek = require('@hapi/hoek')
 
+const Utils = require('./utils')
 const GpgFsFile = require('./file')
+
 
 class Bucket {
   constructor({id, name, root}){
@@ -54,9 +56,9 @@ class Bucket {
       created: nowTime,
       bucketName: this.name,
       cleartext: false,
-      meta: [],
-      readers: [],
-      writers: []
+      meta: [whoami],
+      readers: [whoami],
+      writers: [whoami]
     })
 
     await this.setIndex({
@@ -139,7 +141,7 @@ class Bucket {
 
     }
 
-    return toList
+    return Utils.uniqueArray(toList)
   }
 
   async getObjectIds(){
@@ -167,7 +169,7 @@ class Bucket {
 
   async setMetadata(value){
     const nowTime = (new Date()).toISOString()
-    let newMetadata = Object.assign({lastchanged: nowTime}, value)
+    let newMetadata = Object.assign({lastchanged: nowTime}, this.metadata, value)
 
     await this.root.writeFile( this.path + '/metadata',
       newMetadata,
