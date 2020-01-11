@@ -15,7 +15,7 @@ gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpg
 ## API Example
 
 ```js
-const gpgfs = require('../src/index')
+const gpgfs = require('gpgfs')
 
 
 async function main(){
