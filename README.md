@@ -3,6 +3,9 @@
 gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpgfs file system
 
  * Documentation - [datapartyjs.github.io/gpgfs/](https://datapartyjs.github.io/gpgfs/)
+ * NPM - [npmjs.com/package/gpgfs](https://www.npmjs.com/package/gpgfs)
+ * Code - [github.com/datapartyjs/gpgfs](https://github.com/datapartyjs/gpgfs)
+ * Social - [@datapartyjs](https://twitter.com/datapartyjs)
 
 ## Goals
 
