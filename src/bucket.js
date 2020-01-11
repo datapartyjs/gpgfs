@@ -1,6 +1,9 @@
 
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.Bucket')
+const Hoek = require('@hapi/hoek')
+
+const GpgFsFile = require('./file')
 
 class Bucket {
   constructor({id, name, root}){
@@ -10,10 +13,14 @@ class Bucket {
 
     this.index = null
     this.metadata = null
+    this._fileCache = {}
     debug('new -', name || id)
   }
 
   async open(){
+    this.index = null
+    this.metadata = null
+    this._fileCache = {}
     await this.getIndex()
     await this.getMetadata()
     this.name = this.metadata.bucketName
@@ -25,8 +32,10 @@ class Bucket {
   }
 
   async create(){
-    //this.id = new ObjectId()
     debug('create -', this.id)
+
+    if(this.exists()){ throw new Error('bucket exists') }
+
     this.root.touchDir(this.path)
     this.root.touchDir(this.path + '/objects')
     this.root.touchDir(this.path + '/object-meta')
@@ -56,12 +65,54 @@ class Bucket {
   }
 
   async file(name){
-    //
-    
+    let file = await this.getFile(name)
+
+    if(!file){
+      file = new GpgFsFile({
+        bucket: this,
+        filePath: name
+      })
+    }
+
+    return file
   }
 
-  async getFiles({directory}){
-    //
+  async getFileFromCache(id){
+    return this._fileCache[id]
+  }
+
+  async getFile(path){
+    await this.getIndex()
+
+    if(!(this.index && this.index.objects)){
+      return null
+    }
+
+    let fileId = null
+    for(const obj of this.index.objects){
+      if(obj.path == path){
+        fileId = obj.objectId.id
+        break;
+      }
+    }
+
+    if(!fileId){ return null }
+
+    //! get file from cache
+    let file = this._fileCache[fileId]
+
+    if(!file){
+      file = new GpgFsFile({
+        bucket: this,
+        id: fileId,
+        filePath: path
+      })
+
+      await file.open()
+      this._fileCache[file.id] = file
+    }
+
+    return file
   }
 
   get path(){
@@ -102,6 +153,7 @@ class Bucket {
   }
 
   async getIndex(){
+    if(this.index !== null){ return this.index }
     const indexPath = this.path + '/index'
     this.index = await this.root.readFile( indexPath, true, 'bucket_index')
     return this.index   
@@ -144,7 +196,8 @@ class Bucket {
       bucketId: {
         id: this.id.toHexString(),
         type: 'bucket_meta'
-      }
+      },
+      objects: []
     }, value)
 
 
@@ -164,6 +217,50 @@ class Bucket {
     else {
       debug('replacing index')
       this.index = newIndex
+    }
+  }
+
+  async indexFile(file){
+    let indexes = []
+
+    await this.getIndex()
+
+
+    for(const idx in Hoek.reach(this, 'index.objects')){
+      console.log(idx)
+      
+      let obj = this.index.objects[ idx ]
+      if(obj.path == file.filePath || obj.objectId.id == file.id){
+        indexes.push(idx)
+      }
+    }
+
+    debug('found ', indexes.length, ' index entries matching path =', file.filePath)
+
+    if(indexes.length > 1){ throw new Error('duplicate file path in index') }
+
+    const idx = indexes[0]
+    let oldIndex =  Hoek.reach(this, 'index.objects.'+idx)
+    let newIndex = {
+      created: file.metadata.created,
+      objectId: file.metadata.objectId,
+      path: file.metadata.path,
+      size: file.lastchange.size,
+      lastchanged: file.lastchange.lastchanged
+    }
+
+    debug('newIndex', newIndex)
+
+    if(!oldIndex){
+      await this.setIndex({
+        ...this.index,
+        objects: [].concat(this.index.objects, [newIndex])
+      })
+    }
+    else {
+
+      this.index.objects[ idx ] = newIndex
+      await this.setIndex({...this.index })
     }
   }
 }

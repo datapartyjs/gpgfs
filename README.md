@@ -11,9 +11,7 @@ gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpg
  * Encrypted metadata
  * Granular permissions
 
-## API
-
-### Class `gpgfs`
+## API Example
 
 ```js
 const gpgfs = require('gpgfs')

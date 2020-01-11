@@ -1,14 +1,16 @@
 const md5 = require('md5')
+const Path = require('path')
+const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.File')
 
 class File {
-  constructor(bucket, id, objectPath){
+  constructor({bucket, id, filePath}){
     this.bucket = bucket
     this.id = new ObjectId(id)
-    this.objectPath = objectPath
+    this.filePath = filePath
 
-    this.content = null
+    this.content = ''
     this.metadata = null
     this.lastchange = null
   }
@@ -16,14 +18,14 @@ class File {
   async open(){
     await this.getMetadata()
     await this.getLastchange()
-    this.objectPath = this.metadata.path
-    debug('loaded ', this.objectPath)
+    this.filePath = this.metadata.path
+    debug('loaded ', this.filePath)
   }
 
   exists(){
-    const contentExists = this.root.fileExists( this.path )
-    const metadataExists = this.root.fileExists( this.lastchangePath )
-    const lastchangeExists = this.root.fileExists( this.path )
+    const contentExists = this.bucket.root.fileExists( this.path )
+    const metadataExists = this.bucket.root.fileExists( this.lastchangePath )
+    const lastchangeExists = this.bucket.root.fileExists( this.path )
 
     return contentExists
   }
@@ -50,13 +52,11 @@ class File {
   }
 
   async create(){
+    debug('create -', this.id)
     if(this.exists()){ throw new Error('file exists') }
 
-    
-    /*
-      if exists() throw
-      this.save() // save an empty file
-    */
+    await this.setMetadata()
+    await this.save()
   }
 
   async getReciepents(){
@@ -85,31 +85,27 @@ class File {
 
   async read(){
     //load & decrypt
-    this.content = await this.root.readFile( this.path, true)
+    this.content = await this.bucket.root.readFile( this.path, true)
     return this.content
   }
 
-  async save(content){
-    /*
+  async save(){
 
-      1. encrypt content to file
-      2. update meta {md5sum, lastchange.*}
-      3. saveMetadata()
-      4. 
+    await this.bucket.root.writeFile( this.path,
+      this.content,
+      {
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
 
-    */
+    await this.updateLastChange()
 
-    if(content){
-      this.content = content
-    }
-
-    await this.setLastchange()
+    await this.bucket.indexFile(this)
   }
 
   async getMetadata(){
-    this.metadata = await this.root.readFile( this.metadataPath, true, 'object_meta')
-
-    this.objectId = this.metadata.
+    this.metadata = await this.bucket.root.readFile( this.metadataPath, true, 'object_meta')
     return this.metadata
   }
 
@@ -117,6 +113,7 @@ class File {
     const nowTime = (new Date()).toISOString()
     let newMetadata = Object.assign({lastchanged: nowTime}, {
       owner: this.bucket.metadata.owner,
+      path: this.filePath,
       bucketId: {
         id: this.bucket.id.toHexString(),
         type: 'bucket_meta'
@@ -125,15 +122,14 @@ class File {
         id: this.id.toHexString(),
         type: 'object_meta'
       },
-      created: this.metadata.created || nowTime,
-      created: this.metadata.created || nowTime,
-      cleartext: this.bucket.metadata.cleartext,
-      meta: this.bucket.metadata.meta,
-      readers: this.bucket.metadata.readers,
-      writers: this.bucket.metadata.writers
+      created: Hoek.reach(this, 'metadata.created') || nowTime,
+      cleartext: Hoek.reach(this, 'bucket.metadata.cleartext'),
+      meta: Hoek.reach(this, 'bucket.metadata.meta'),
+      readers: Hoek.reach(this, 'bucket.metadata.readers'),
+      writers: Hoek.reach(this, 'bucket.metadata.writers')
     })
 
-    await this.root.writeFile( this.metadataPath,
+    await this.bucket.root.writeFile( this.metadataPath,
       newMetadata,
       {
         model: 'object_meta',
@@ -153,11 +149,11 @@ class File {
   }
 
   async getLastchange(){
-    this.lastchange = await this.root.readFile( this.lastchangePath, true, 'object_lastchange')
+    this.lastchange = await this.bucket.root.readFile( this.lastchangePath, true, 'object_lastchange')
     return this.lastchange  
   }
   
-  async setLastchange(){
+  async updateLastChange(){
     const nowTime = (new Date()).toISOString()
 
     const md5sum = md5(this.content)
@@ -178,9 +174,9 @@ class File {
       md5sum
     })
 
-    debug('setLastchange -', newLastchange)
+    debug('updateLastChange -', newLastchange)
 
-    await this.root.writeFile( this.lastchangePath,
+    await this.bucket.root.writeFile( this.lastchangePath,
       newLastchange,
       {
         model: 'object_lastchange',
@@ -197,6 +193,7 @@ class File {
       debug('replacing lastchange')
       this.lastchange = newLastchange
     }
+
   }
 
   async assertIsTrusted(){}
