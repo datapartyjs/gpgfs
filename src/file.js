@@ -31,6 +31,17 @@ class File {
     debug('loaded ', this.filePath)
   }
 
+  async delete(){
+    debug('deleting file', this.filePath)
+    await this.bucket.releaseFile(this)
+    await this.bucket.unindexFile(this)
+    await this.bucket.root.unlinkFile(this.path)
+    await this.bucket.root.unlinkFile(this.metadataPath)
+    await this.bucket.root.unlinkFile(this.lastchangePath)
+
+    delete this
+  }
+
   async release(){
     debug('releasing', this.bucket.id.toString(), '/', this.id.toString())
     delete this.content

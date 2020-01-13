@@ -55,6 +55,11 @@ class Bucket {
     this._fileCache = {}
   }
 
+  async releaseFile(file){
+    delete this._fileCache[file.id.toString()]
+    this._fileCache[file.id.toString()] = undefined
+  }
+
   /**
    * Check if all metadata exists on disk
    * @method
@@ -316,6 +321,36 @@ class Bucket {
     else {
 
       this.index.objects[ idx ] = newIndex
+      await this.setIndex({...this.index })
+    }
+  }
+
+  async unindexFile(file){
+    debug('unindex')
+    let indexes = []
+
+    await this.getIndex()
+
+
+    for(const idx in Hoek.reach(this, 'index.objects')){
+      
+      let obj = this.index.objects[ idx ]
+      if(obj.path == file.filePath || obj.objectId.id == file.id){
+        indexes.push(idx)
+      }
+    }
+
+    debug('found ', indexes.length, ' index entries matching path =', file.filePath)
+
+    if(indexes.length > 1){ throw new Error('duplicate file path in index') }
+
+    const idx = indexes[0]
+    let oldIndex =  Hoek.reach(this, 'index.objects.'+idx)
+
+    if(oldIndex){
+      debug('removing from index', oldIndex)
+      this.index.objects.splice( idx, 1 );
+
       await this.setIndex({...this.index })
     }
   }

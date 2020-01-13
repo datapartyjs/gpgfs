@@ -210,6 +210,12 @@ class Gpgfs {
     return content
   }
 
+  async unlinkFile(path){
+    const realPath = this.filePath(path)
+    debug('unlinkFile -', realPath)
+    fs.unlinkSync(realPath)
+  }
+
   async getBucketIds(){
     const bucketPaths = (await this.readDir('/buckets'))
     .map(item=>{

@@ -28,6 +28,7 @@ class FuseMount {
         read: this.onread.bind(this),
         write: this.onwrite.bind(this),
         fsync: this.onfsync.bind(this),
+        unlink: this.onunlink.bind(this),
         create: this.oncreate.bind(this),
         release: this.onrelease.bind(this),
         truncate: this.ontruncate.bind(this),
@@ -127,10 +128,8 @@ class FuseMount {
     }
 
     debug_readdir('no content', dir)
-    
 
-
-    cb(0)
+    cb(Fuse.ENOENT)
   }
 
   async ongetattr(path, cb){
@@ -251,6 +250,27 @@ class FuseMount {
 
 
     return cb(0, fd)
+  }
+
+  async onunlink(path, cb){
+    debug('onunlink', path)
+
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    debug('onunlink', 'bucketName', bucketName, dir)
+    const bucket = this.buckets[bucketName]
+
+    try{
+    const file = await bucket.file(dir.join('/'))
+
+    if(file.exists()){ await file.delete() }
+    }
+    catch(err){
+      debug(err)
+      throw err
+    }
+
+    return cb(0)
   }
 
   async onread(path, fd, buf, len, pos, cb){
