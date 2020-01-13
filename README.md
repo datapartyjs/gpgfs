@@ -50,10 +50,11 @@ async function main(){
 
   const content = await file.read()
   const metadata = await file.getMetadata()
+  const lastchange = await file.getLastchange()
 
   console.log('file-content [', content, ']')
   console.log('metadata', metadata)
-  console.log('lastchange', await file.getLastchange())
+  console.log('lastchange', lastchange)
 }
 ```
 

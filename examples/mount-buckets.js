@@ -1,5 +1,5 @@
 const gpgfs = require('../src/index')
-
+const FuseMount = require('../src/fuse-mount')
 
 async function main(){
   const securefs = new gpgfs()
@@ -16,26 +16,15 @@ async function main(){
     await bucket.create()
   }
 
-  console.log(bucket)
-
-  console.log('bucket-index', bucket.index)
-
   const file = await bucket.file('directory-1/foo/bar/file-test.txt')
-
-  if(!file.exists()){
-    console.log('creating file', file.id)
-    await file.create()
-
-    file.content = 'hello world\n'
-    await file.save()
-  }
-
   const content = await file.read()
   const metadata = await file.getMetadata()
-
   console.log('file-content [', content, ']')
-  console.log('metadata', metadata)
-  console.log('lastchange', await file.getLastchange())
+
+  const fuse = new FuseMount('gpgfs')
+  await fuse.start()
+
+  await fuse.addBucket(bucket)
 }
 
 
@@ -45,5 +34,3 @@ main().catch((error) => {
   console.error(error.message)
   process.exit()
 })
-
-

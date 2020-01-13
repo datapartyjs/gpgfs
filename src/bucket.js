@@ -1,7 +1,7 @@
-
+const Path = require('path')
+const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.Bucket')
-const Hoek = require('@hapi/hoek')
 
 const Utils = require('./utils')
 const GpgFsFile = require('./file')
@@ -33,6 +33,26 @@ class Bucket {
     await this.getMetadata()
     this.name = this.metadata.bucketName
     debug('loaded ', this.name)
+  }
+
+  async release(){
+    debug('releasing', this.id.toString())
+
+    for(let id in this._fileCache){
+      await this._fileCache[id].release()
+
+      delete this._fileCache[id].bucket
+      this._fileCache[id].bucket = null
+      delete this._fileCache[id]
+    }
+
+    delete this.index
+    delete this.metadata
+    delete this._fileCache
+
+    this.index = null
+    this.metadata = null
+    this._fileCache = {}
   }
 
   /**
@@ -109,6 +129,8 @@ class Bucket {
     if(!(this.index && this.index.objects)){
       return null
     }
+
+    path = Path.join('/', path)
 
     let fileId = null
     for(const obj of this.index.objects){

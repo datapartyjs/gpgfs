@@ -14,7 +14,7 @@ class File {
   constructor({bucket, id, filePath}){
     this.bucket = bucket
     this.id = new ObjectId(id)
-    this.filePath = Path.normalize( filePath )
+    this.filePath = Path.join('/', filePath)
 
     this.content = ''
     this.metadata = null
@@ -29,6 +29,17 @@ class File {
     await this.getLastchange()
     this.filePath = this.metadata.path
     debug('loaded ', this.filePath)
+  }
+
+  async release(){
+    debug('releasing', this.bucket.id.toString(), '/', this.id.toString())
+    delete this.content
+    delete this.metadata
+    delete this.lastchange
+
+    this.content = ''
+    this.metadata = null
+    this.lastchange = null
   }
 
   /**
