@@ -27,6 +27,8 @@ class FuseMount {
         open: this.onopen.bind(this),
         read: this.onread.bind(this),
         write: this.onwrite.bind(this),
+        fsync: this.onfsync.bind(this),
+        create: this.oncreate.bind(this),
         release: this.onrelease.bind(this),
         truncate: this.ontruncate.bind(this),
         ftruncate: this.onftruncate.bind(this)
@@ -62,7 +64,7 @@ class FuseMount {
           process.on('SIGINT', this.unmount.bind(this))
           process.on('SIGUSR1', this.unmount.bind(this))
           process.on('SIGUSR2', this.unmount.bind(this))
-          process.on('uncaughtException', this.unmount.bind(this))
+          //process.on('uncaughtException', this.unmount.bind(this))
 
           resolve()
         }
@@ -191,7 +193,12 @@ class FuseMount {
   }
 
   async onopen(path, flags, cb){
-    debug('onopen', path)
+    debug('onopen', path, flags)
+
+    if(!path || path.length < 1){
+      debug('NO PATH?')
+      return cb(Fuse.ENOENT)
+    }
 
     const fd = this.fdCount++
     this.fds[fd] = {
@@ -224,6 +231,28 @@ class FuseMount {
     cb(0, fd)
   }
 
+  async oncreate(path, mode, cb){
+    debug('oncreate', path, mode)
+
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    debug('oncreate', 'bucketName', bucketName, dir)
+    const bucket = this.buckets[bucketName]
+
+    const file = await bucket.file(dir.join('/'))
+
+    if(!file.exists()){ await file.create() }
+
+    const fd = this.fdCount++
+    this.fds[fd] = {
+      fd,
+      path
+    }
+
+
+    return cb(0, fd)
+  }
+
   async onread(path, fd, buf, len, pos, cb){
     debug('onread', path)
 
@@ -233,6 +262,20 @@ class FuseMount {
     const bucket = this.buckets[bucketName]
 
     const file = await bucket.file(dir.join('/'))
+
+    const writeBuffer = this.fds[fd].writeBuffer
+    if(writeBuffer){
+      //! User is reading their changed content
+      let readEOF = Math.min(pos+len, writeBuffer.size)
+
+      const readSize = Math.max(0, readEOF - pos)
+      if(readSize > 0){
+        writeBuffer.data.copy(buf, 0, pos, readEOF)
+      }
+  
+      debug('read writeBuffer',path,' readSize=',readSize)
+      return cb(readSize)
+    }
 
     if(!file.content || file.content.length < 1){ return cb(0) }
 
@@ -247,12 +290,87 @@ class FuseMount {
   }
 
   async onwrite(path, fd, buf, len, pos, cb){
-    debug('onwrite', path)
-    cb(0)
+    debug('onwrite', path, 'fd', fd, 'len', len, 'pos', pos, typeof buf, buf instanceof Buffer)
+
+    let writeBuffer = this.fds[fd].writeBuffer
+
+    if(!writeBuffer){
+      this.fds[fd].writeBuffer = {
+        size: 0,
+        data: Buffer.alloc(8192)
+      }
+
+      this.fds[fd].writeBuffer.data.fill(0x0)
+
+      writeBuffer = this.fds[fd].writeBuffer
+    }
+
+    let subBuf = buf
+
+    if(buf.length > len){ subBuf = buf.slice(0, len) }
+
+    const [empty, bucketName, ...dir] = path.split('/')
+    const bucket = this.buckets[bucketName]
+    const file = await bucket.file(dir.join('/'))
+
+    debug('writing',path, buf.slice(pos, len), len, pos)
+
+    const writeFsSize = pos+len
+    if( writeBuffer.data.length < writeFsSize ){
+      debug('resize buffer -',path, writeFsSize)
+      let temp = Buffer.alloc( writeFsSize )
+      temp.fill(0x0)
+
+      writeBuffer.data.copy(temp, 0, 0, writeBuffer.data.length)
+      writeBuffer.data = temp
+      writeBuffer.size = writeFsSize
+    }
+
+    buf.copy(writeBuffer.data, pos, 0, len)
+    writeBuffer.size = Math.max(writeFsSize,writeBuffer.size)
+    debug('wrote',len, ' fileSize=',writeBuffer.size)
+
+    //await file.save(subBuf.toString())
+    cb(len) // we handled all the data
+
+    //await file.save(subBuf.toString())
+  }
+
+  async onfsync(path, fd, datasync, cb){
+    debug('onfsync', path, fd)
+
+    const writeBuffer = this.fds[fd].writeBuffer
+
+    if(writeBuffer){
+      debug('flushing writeBuffer')
+
+      const [empty, bucketName, ...dir] = path.split('/')
+      const bucket = this.buckets[bucketName]
+      const file = await bucket.file(dir.join('/'))
+
+      await file.save(writeBuffer.data.slice(0, writeBuffer.size).toString())
+      delete this.fds[fd].writeBuffer
+      this.fds[fd].writeBuffer = undefined
+    }
   }
 
   async onrelease(path, fd, cb){
     debug('onrelease', path)
+
+    const writeBuffer = this.fds[fd].writeBuffer
+
+    if(writeBuffer){
+      debug('flushing writeBuffer')
+
+      const [empty, bucketName, ...dir] = path.split('/')
+      const bucket = this.buckets[bucketName]
+      const file = await bucket.file(dir.join('/'))
+
+      await file.save(writeBuffer.data.slice(0, writeBuffer.size).toString())
+      delete this.fds[fd].writeBuffer
+      this.fds[fd].writeBuffer = undefined
+    }
+
 
     delete this.fds[fd]
     this.fds[fd] = undefined
@@ -288,12 +406,20 @@ class FuseMount {
   }
 
   async ontruncate(path, size, cb){
-    debug('ontruncate', path)
+    debug('ontruncate', path, size)
+
+    //const writeBuffer = this.fds[fd].writeBuffer
+    //if(writeBuffer){ writeBuffer.size = size }
+
     cb(0)
   }
 
   async onftruncate(path, fd, size, cb){
-    debug('onftruncate', path)
+    debug('onftruncate', path, size)
+
+    const writeBuffer = this.fds[fd].writeBuffer
+    if(writeBuffer){ writeBuffer.size = size }
+
     cb(0)
   }
 

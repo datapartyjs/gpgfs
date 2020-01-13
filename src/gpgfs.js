@@ -6,6 +6,7 @@ const GpgPromised = require('gpg-promised')
 const debug = require('debug')('gpgfs.gpgfs')
 const sanitize = require('sanitize-filename')
 
+const FuseMount = require('./fuse-mount')
 const GpgFsBucket = require('./bucket')
 const Validator = require('./validator')
 
@@ -54,14 +55,13 @@ class Gpgfs {
   }
 
 
-  /** @member {Bucket}  */
-  static get Bucket () {
-    return GpgFsBucket
-  }
-
   static get MODE_READ(){ return 1 }
   static get MODE_WRITE(){ return 2 }
 
+  /** @member {FuseMount}  */
+  static get FuseMount () {
+    return FuseMount
+  }
 
   /** 
    * Load all matching bucket metadata
@@ -113,7 +113,7 @@ class Gpgfs {
 
     if(!bucket){
       //! bucket does not exist yet
-      bucket = new Gpgfs.Bucket({name, root: this})
+      bucket = new GpgFsBucket({name, root: this})
     }
 
     return bucket

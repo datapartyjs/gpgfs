@@ -1,5 +1,4 @@
 const gpgfs = require('../src/index')
-const FuseMount = require('../src/fuse-mount')
 
 async function main(){
   const securefs = new gpgfs()
@@ -21,7 +20,7 @@ async function main(){
   const metadata = await file.getMetadata()
   console.log('file-content [', content, ']')*/
 
-  const fuse = new FuseMount('gpgfs')
+  const fuse = new gpgfs.FuseMount('gpgfs')
   await fuse.start()
 
   await fuse.addBucket(bucket)
