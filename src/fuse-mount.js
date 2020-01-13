@@ -16,7 +16,7 @@ class FuseMount {
     this.fdCount = 0
     this.fds = {}
     this.buckets = {}
-    this.contentCacheMs = 30000
+    this.contentCacheMs = 60000
     this.mountPoint = mountPoint
     this._releasing = {}
     this.fuse = new Fuse(
@@ -421,7 +421,7 @@ class FuseMount {
 
 
     delete this.fds[fd]
-    this.fds[fd] = undefined
+
 
     if(this._releasing[path]){
       clearTimeout(this._releasing[path])
@@ -429,16 +429,22 @@ class FuseMount {
     }
 
     this._releasing[path] = setTimeout(async ()=>{
-      this._releasing[path] = null
-      delete this._releasing[path]
+      
+
+      debug('releaseTimer -', path)
+
       let uses = 0
+      debug(this.fds)
       for(const id in this.fds){
         const otherFd = this.fds[id]
 
-        if(path == otherFd){ uses++ }
+        debug(id, otherFd)
+
+        if(path == otherFd.path){ uses++ }
       }
 
       if(uses < 1){
+        
         const [empty, bucketName, ...dir] = path.split('/')
         const bucket = this.buckets[bucketName]
         const file = await bucket.file(dir.join('/'))
@@ -447,6 +453,9 @@ class FuseMount {
           await file.release()
         }
       }
+
+      delete this._releasing[path]
+
     }, this.contentCacheMs)
 
 
