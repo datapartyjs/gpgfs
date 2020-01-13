@@ -149,7 +149,10 @@ class Gpgfs {
 
       if(options.encrypt){
 
-        if(typeof content !== 'string'){ content = JSON.stringify(content) }
+        if(
+          typeof content !== 'string'
+          && !(content instanceof Buffer)
+        ){ content = JSON.stringify(content) }
 
         await this.cacheWhoami()
         content = await this.keychain.encrypt(content, options.to, this.whoami)
@@ -202,7 +205,7 @@ class Gpgfs {
 
     if(model){
       debug('readFile - json parse')
-      const jsonContent = JSON.parse(content)
+      const jsonContent = JSON.parse(content.toString())
       debug('readFile - validate')
       content = await this.validateModel(model, jsonContent)
     }
