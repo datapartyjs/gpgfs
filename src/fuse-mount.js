@@ -16,7 +16,7 @@ class FuseMount {
     this.fdCount = 0
     this.fds = {}
     this.buckets = {}
-    this.contentCacheMs = 10000
+    this.contentCacheMs = 30000
     this.mountPoint = mountPoint
     this._releasing = {}
     this.fuse = new Fuse(
@@ -330,10 +330,7 @@ class FuseMount {
     writeBuffer.size = Math.max(writeFsSize,writeBuffer.size)
     debug('wrote',len, ' fileSize=',writeBuffer.size)
 
-    //await file.save(subBuf.toString())
     cb(len) // we handled all the data
-
-    //await file.save(subBuf.toString())
   }
 
   async onfsync(path, fd, datasync, cb){

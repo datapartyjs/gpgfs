@@ -284,7 +284,6 @@ class Bucket {
 
 
     for(const idx in Hoek.reach(this, 'index.objects')){
-      console.log(idx)
       
       let obj = this.index.objects[ idx ]
       if(obj.path == file.filePath || obj.objectId.id == file.id){
