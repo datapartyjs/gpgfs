@@ -1,7 +1,7 @@
-
+const Path = require('path')
+const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.Bucket')
-const Hoek = require('@hapi/hoek')
 
 const Utils = require('./utils')
 const GpgFsFile = require('./file')
@@ -33,6 +33,31 @@ class Bucket {
     await this.getMetadata()
     this.name = this.metadata.bucketName
     debug('loaded ', this.name)
+  }
+
+  async release(){
+    debug('releasing', this.id.toString())
+
+    for(let id in this._fileCache){
+      await this._fileCache[id].release()
+
+      delete this._fileCache[id].bucket
+      this._fileCache[id].bucket = null
+      delete this._fileCache[id]
+    }
+
+    delete this.index
+    delete this.metadata
+    delete this._fileCache
+
+    this.index = null
+    this.metadata = null
+    this._fileCache = {}
+  }
+
+  async releaseFile(file){
+    delete this._fileCache[file.id.toString()]
+    this._fileCache[file.id.toString()] = undefined
   }
 
   /**
@@ -109,6 +134,8 @@ class Bucket {
     if(!(this.index && this.index.objects)){
       return null
     }
+
+    path = Path.join('/', path)
 
     let fileId = null
     for(const obj of this.index.objects){
@@ -262,7 +289,6 @@ class Bucket {
 
 
     for(const idx in Hoek.reach(this, 'index.objects')){
-      console.log(idx)
       
       let obj = this.index.objects[ idx ]
       if(obj.path == file.filePath || obj.objectId.id == file.id){
@@ -295,6 +321,36 @@ class Bucket {
     else {
 
       this.index.objects[ idx ] = newIndex
+      await this.setIndex({...this.index })
+    }
+  }
+
+  async unindexFile(file){
+    debug('unindex')
+    let indexes = []
+
+    await this.getIndex()
+
+
+    for(const idx in Hoek.reach(this, 'index.objects')){
+      
+      let obj = this.index.objects[ idx ]
+      if(obj.path == file.filePath || obj.objectId.id == file.id){
+        indexes.push(idx)
+      }
+    }
+
+    debug('found ', indexes.length, ' index entries matching path =', file.filePath)
+
+    if(indexes.length > 1){ throw new Error('duplicate file path in index') }
+
+    const idx = indexes[0]
+    let oldIndex =  Hoek.reach(this, 'index.objects.'+idx)
+
+    if(oldIndex){
+      debug('removing from index', oldIndex)
+      this.index.objects.splice( idx, 1 );
+
       await this.setIndex({...this.index })
     }
   }

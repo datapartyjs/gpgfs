@@ -6,17 +6,15 @@ const logger = require('debug')('utils');
 
 exports.touchDir = async (path) => {
   return new Promise((resolve, reject) => {
-    const basedPath = Path.join(this.basePath, path)
-    logger('touch dir', basedPath)
-    mkdirp(basedPath, (error) => {
+    logger('touch dir', path)
+    mkdirp(path, (error) => {
       if (error) {
-        logger(`failed to mkdirp '${basedPath}':`, error)
+        logger(`failed to mkdirp '${path}':`, error)
         return reject(error)
       }
 
-      logger('touched', basedPath)
-      // resolve to adjusted path on success
-      resolve(basedPath)
+      logger('touched', path)
+      resolve(path)
     })
   })
 }

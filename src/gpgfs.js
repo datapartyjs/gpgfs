@@ -6,6 +6,7 @@ const GpgPromised = require('gpg-promised')
 const debug = require('debug')('gpgfs.gpgfs')
 const sanitize = require('sanitize-filename')
 
+const FuseMount = require('./fuse-mount')
 const GpgFsBucket = require('./bucket')
 const Validator = require('./validator')
 
@@ -20,11 +21,12 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({path=null, keychain=null}={}){
+  constructor({path=null, keychain=null, readOnly=false}={}){
     this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
     this.validator = new Validator()
+    this.mode = (readOnly == false) ? Gpgfs.MODE_WRITE : Gpgfs.MODE_READ
 
     this._bucketCache = {}
     this._whoamiCache = null
@@ -53,9 +55,12 @@ class Gpgfs {
   }
 
 
-  /** @member {Bucket}  */
-  static get Bucket () {
-    return GpgFsBucket
+  static get MODE_READ(){ return 1 }
+  static get MODE_WRITE(){ return 2 }
+
+  /** @member {FuseMount}  */
+  static get FuseMount () {
+    return FuseMount
   }
 
   /** 
@@ -108,7 +113,7 @@ class Gpgfs {
 
     if(!bucket){
       //! bucket does not exist yet
-      bucket = new Gpgfs.Bucket({name, root: this})
+      bucket = new GpgFsBucket({name, root: this})
     }
 
     return bucket
@@ -130,6 +135,7 @@ class Gpgfs {
   }
 
   async writeFile(path, data, options){
+    if(this.mode!=Gpgfs.MODE_WRITE){ throw new Error('read only') }
 
     debug('writeFile -', path, options)
     let content = data
@@ -171,6 +177,7 @@ class Gpgfs {
   }
 
   async readFile(path, decrypt=false, model){
+
     let content = await new Promise((resolve,reject)=>{
 
       const realPath = this.filePath(path)
@@ -201,6 +208,12 @@ class Gpgfs {
     }
 
     return content
+  }
+
+  async unlinkFile(path){
+    const realPath = this.filePath(path)
+    debug('unlinkFile -', realPath)
+    fs.unlinkSync(realPath)
   }
 
   async getBucketIds(){
