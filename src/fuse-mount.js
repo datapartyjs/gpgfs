@@ -13,6 +13,8 @@ const Utils = require('./utils')
 
 class FuseMount {
   constructor(mountPoint){
+    this.fdCount = 0
+    this.fds = {}
     this.buckets = {}
     this.mountPoint = mountPoint
     this.fuse = new Fuse(
@@ -188,12 +190,54 @@ class FuseMount {
 
   async onopen(path, flags, cb){
     debug('onopen', path)
-    cb(0)
+
+    const fd = this.fdCount++
+    this.fds[fd] = {
+      fd,
+      path,
+      flags
+    }
+
+    debug('onopen new FD - ',this.fds[fd])
+
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    debug('onopen', 'bucketName', bucketName, dir)
+    const bucket = this.buckets[bucketName]
+
+    const file = await bucket.file(dir.join('/'))
+
+    if(file.content && file.lastchange && file.content.length == file.lastchange.size){
+      debug('onopen', 'bucketName', bucketName, dir, 'already read')
+    } else {
+      debug('onopen', 'bucketName', bucketName, dir, 'reading . . . ')
+      
+      await file.read()
+    }
+
+    cb(0, fd)
   }
 
   async onread(path, fd, buf, len, pos, cb){
     debug('onread', path)
-    cb(0)
+
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    debug('onopen', 'bucketName', bucketName, dir)
+    const bucket = this.buckets[bucketName]
+
+    const file = await bucket.file(dir.join('/'))
+
+    if(!file.content || file.content.length < 1){ return cb(0) }
+
+    let sliced = file.content.slice(pos)
+
+    if(!sliced){ return cb(0) }
+
+    if(sliced.length > len){ sliced = sliced.slice(0, len) }
+
+    buf.write(sliced)
+    return cb(sliced.length)
   }
 
   async onwrite(path, fd, buf, len, pos, cb){
@@ -203,6 +247,9 @@ class FuseMount {
 
   async onrelease(path, fd, cb){
     debug('onrelease', path)
+
+    delete this.fds[fd]
+    this.fds[fd] = undefined
     cb(0)
   }
 

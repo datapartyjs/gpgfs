@@ -16,10 +16,10 @@ async function main(){
     await bucket.create()
   }
 
-  const file = await bucket.file('directory-1/foo/bar/file-test.txt')
+  /*const file = await bucket.file('directory-1/foo/bar/file-test.txt')
   const content = await file.read()
   const metadata = await file.getMetadata()
-  console.log('file-content [', content, ']')
+  console.log('file-content [', content, ']')*/
 
   const fuse = new FuseMount('gpgfs')
   await fuse.start()
