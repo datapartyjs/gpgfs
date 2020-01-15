@@ -64,8 +64,16 @@ class Bucket {
    * Check if all metadata exists on disk
    * @method
    * @returns {boolean} */
-  exists(){
-    return this.root.fileExists( this.path )
+  async exists(){
+    const existance = await Promise.all([
+      this.root.fileExists( this.indexPath ),
+      this.root.fileExists( this.metadataPath )
+    ])
+    
+    return existance.reduce(
+      (total, current)=>{ return total && current },
+      true
+    )
   }
 
     /**
@@ -75,7 +83,9 @@ class Bucket {
   async create(){
     debug('create -', this.id)
 
-    if(this.exists()){ throw new Error('bucket exists') }
+    //if(this.exists()){ throw new Error('bucket exists') }
+    if(await this.root.fileExists( this.indexPath )){ throw new Error('bucket index exists') }
+    if(await this.root.fileExists( this.metadataPath )){ throw new Error('bucket metadata exists') }
 
     this.root.touchDir(this.path)
     this.root.touchDir(this.path + '/objects')
@@ -164,9 +174,9 @@ class Bucket {
     return file
   }
 
-  get path(){
-    return '/buckets/bucket-'+this.id.toHexString()
-  }
+  get path(){ return '/buckets/bucket-'+this.id.toHexString() }
+  get indexPath(){return this.path+'/index' }
+  get metadataPath(){return this.path+'/metadata' }
 
   async getReciepents(){
     await this.root.cacheWhoami()

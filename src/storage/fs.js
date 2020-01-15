@@ -22,6 +22,8 @@ class FsStorage extends IStorage {
     super()
     this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
     this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
+
+    debug('basePath =', this.basePath, ',  mode =' + this.mode)
   }
 
   storagePath(path){
@@ -31,10 +33,57 @@ class FsStorage extends IStorage {
   }
 
   get name(){ return 'fs' }
+
+  async fileExists(path){
+    const result = fs.existsSync( this.storagePath(path) )
+
+    debug("fileExists: ", result, path)
+    return result
+  }
   
-  async readFile(path){ throw new Error('not implemented') }
-  async writeFile(path, data){ throw new Error('not implemented') }
-  async rmFile(path){ throw new Error('not implemented') }
+  async readFile(path){
+    return new Promise((resolve,reject)=>{
+
+      const realPath = this.storagePath(path)
+
+      debug("Reading from file: " + realPath)
+      fs.readFile(realPath, 'utf8', (err,data)=>{
+        if(err){
+          return reject(err)
+        }
+
+        resolve(data)
+      })
+
+    })
+  }
+
+  async writeFile(path, data, options){
+    return new Promise((resolve,reject)=>{
+
+      const realPath = this.storagePath(path)
+
+      debug("Writing file: " + realPath)
+      fs.writeFile(realPath, data, options, (err)=>{
+        if(err){
+          debug('failed to write file - ',path, '\nerror -',err)
+          return reject(err)
+        }
+
+        debug('wrote file:', path)
+        resolve()
+      })
+
+    })
+  }
+
+  async rmFile(path){ 
+    const realPath = this.storagePath(path)
+    debug('rmFile -', realPath)
+    fs.unlinkSync(realPath)
+  }
+
+
   async checksumFile(path){ throw new Error('not implemented') }
 
   async readDir(path){ 
@@ -61,7 +110,6 @@ class FsStorage extends IStorage {
           return reject(error)
         }
   
-        debug('touched', realPath)
         // resolve to adjusted path on success
         resolve(realPath)
       })

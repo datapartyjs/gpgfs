@@ -10,6 +10,7 @@ const FuseMount = require('./fuse-mount')
 const GpgFsBucket = require('./bucket')
 const Validator = require('./validator')
 
+const FsStorage = require('./storage/fs')
 
 class Gpgfs {
 
@@ -21,8 +22,8 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({storage=new FsStroage(), keychain=null, readOnly=false}={}){
-    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
+  constructor({storage=null, keychain=null, readOnly=false}={}){
+    this.storage = storage || new FsStorage()
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
     this.validator = new Validator()
@@ -120,8 +121,8 @@ class Gpgfs {
   }
 
 
-  fileExists(path){
-    return fs.existsSync( this.filePath(path) )
+  async fileExists(path){
+    return await this.storage.fileExists(path)
   }
 
   filePath(path){
@@ -159,42 +160,12 @@ class Gpgfs {
       }
     }
 
-    return new Promise((resolve,reject)=>{
-
-      const realPath = this.filePath(path)
-
-      debug("Writing file: " + realPath)
-      fs.writeFile(realPath, content, {
-        mode: 0o600
-      }, (err)=>{
-        if(err){
-          debug('failed to write file - ',path, '\nerror -',err)
-          return reject(err)
-        }
-
-        debug('wrote file:', path)
-        resolve()
-      })
-
-    })
+    return await this.storage.writeFile(path, content, {mode: 0o600})
   }
 
   async readFile(path, decrypt=false, model){
 
-    let content = await new Promise((resolve,reject)=>{
-
-      const realPath = this.filePath(path)
-
-      debug("Reading from file: " + realPath)
-      fs.readFile(realPath, 'utf8', (err,data)=>{
-        if(err){
-          return reject(err)
-        }
-
-        resolve(data)
-      })
-
-    })
+    let content = await this.storage.readFile(path)
 
     if(decrypt){
       debug('readFile - decrypt')
@@ -213,10 +184,8 @@ class Gpgfs {
     return content
   }
 
-  async unlinkFile(path){
-    const realPath = this.filePath(path)
-    debug('unlinkFile -', realPath)
-    fs.unlinkSync(realPath)
+  async rmFile(path){
+    await this.storage.rmFile(path)
   }
 
   async getBucketIds(){
@@ -230,7 +199,7 @@ class Gpgfs {
   }
 
 
-  pathToBucketRoot({bucketId}){
+  /*pathToBucketRoot({bucketId}){
     return Path.join(this.basePath, 'buckets', `bucket-${bucketId}`)
   }
 
@@ -244,14 +213,14 @@ class Gpgfs {
 
   pathToObjectMeta({bucketId, objectId}){
     return Path.join(pathToBucketRoot(bucketId), 'index')
-  }
+  }*/
 
   async readDir (path){
-    return this.storage.readDir(path)
+    return await this.storage.readDir(path)
   }
 
   async touchDir (path){
-    return this.storage.touchDir(path)
+    return await this.storage.touchDir(path)
   }
   
 
