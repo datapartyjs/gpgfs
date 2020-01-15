@@ -35,9 +35,9 @@ class File {
     debug('deleting file', this.filePath)
     await this.bucket.releaseFile(this)
     await this.bucket.unindexFile(this)
-    await this.bucket.root.unlinkFile(this.path)
-    await this.bucket.root.unlinkFile(this.metadataPath)
-    await this.bucket.root.unlinkFile(this.lastchangePath)
+    await this.bucket.root.rmFile(this.path)
+    await this.bucket.root.rmFile(this.metadataPath)
+    await this.bucket.root.rmFile(this.lastchangePath)
 
     delete this
   }
@@ -57,12 +57,13 @@ class File {
    * Check if all metadata and content exists on disk
    * @method
    * @returns {boolean} */
-  exists(){
-    const contentExists = this.bucket.root.fileExists( this.path )
-    const metadataExists = this.bucket.root.fileExists( this.lastchangePath )
-    const lastchangeExists = this.bucket.root.fileExists( this.path )
+  async exists(){
+    const contentExists = await this.bucket.root.fileExists( this.path )
+    
+    /*const metadataExists = this.bucket.root.fileExists( this.lastchangePath )
+    const lastchangeExists = this.bucket.root.fileExists( this.path )*/
 
-    return contentExists
+    return  contentExists
   }
 
   get path(){
@@ -93,7 +94,7 @@ class File {
    */
   async create(value){
     debug('create -', this.id)
-    if(this.exists()){ throw new Error('file exists') }
+    if(await this.exists()){ throw new Error('file exists') }
 
     await this.setMetadata()
     await this.save(value)

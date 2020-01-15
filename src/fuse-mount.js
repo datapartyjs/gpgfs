@@ -240,7 +240,7 @@ class FuseMount {
 
     const file = await bucket.file(dir.join('/'))
 
-    if(!file.exists()){ await file.create() }
+    if(!await file.exists()){ await file.create() }
 
     const fd = this.fdCount++
     this.fds[fd] = {
@@ -263,7 +263,7 @@ class FuseMount {
     try{
     const file = await bucket.file(dir.join('/'))
 
-    if(file.exists()){ await file.delete() }
+    if(await file.exists()){ await file.delete() }
     }
     catch(err){
       debug(err)
