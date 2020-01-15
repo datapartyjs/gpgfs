@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>Home - Documentation</title>
+    <title>storage.js/fs.js - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -32,104 +32,130 @@
 
 <div id="main">
     
+    <h1 class="page-title">storage.js/fs.js</h1>
+    
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+const fs = require('fs')
+const Path = require('path')
+const mkdirp = require('mkdirp')
+const sanitize = require('sanitize-filename')
+const debug = require('debug')('gpgfs.fs-storage')
 
 
-    <section class="package">
-        <h3>gpgfs 0.3.0</h3>		
-    </section>
+const IStorage = require('../interface-storage')
 
+class FsStorage extends IStorage {
 
-
-
-
-
-
-
-
-    
-
-
-
-    <section class="readme">
-        <article><h1>gpgfs</h1>
-<p>gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpgfs file system</p>
-<ul>
-<li>Documentation - <a href="https://datapartyjs.github.io/gpgfs/">datapartyjs.github.io/gpgfs/</a></li>
-<li>NPM - <a href="https://www.npmjs.com/package/gpgfs">npmjs.com/package/gpgfs</a></li>
-<li>Code - <a href="https://github.com/datapartyjs/gpgfs">github.com/datapartyjs/gpgfs</a></li>
-<li>Social - <a href="https://twitter.com/datapartyjs">@datapartyjs</a></li>
-</ul>
-<h2>Goals</h2>
-<ul>
-<li>Private by default</li>
-<li>Transport agnostic</li>
-<li>Represent file buckets</li>
-<li>Encrypted metadata</li>
-<li>Granular permissions</li>
-</ul>
-<h2>API Example</h2>
-<pre class="prettyprint source lang-js"><code>const gpgfs = require('gpgfs')
-
-
-async function main(){
-  const securefs = new gpgfs()
-
-  await securefs.open()
-
-  //! Trust user
-  await securefs.keychain.trustCard()
-
-  const bucket = await securefs.bucket('staging')
-
-  if(!bucket.exists()){
-    console.log('creating bucket')
-    await bucket.create()
+  /**
+   * Local file storage backend
+   * @class
+   * @constructor
+   * @param {Object} options
+   * @param {string} options.path  Path to a `.gpgfs` directory
+   * @param {boolean} options.readOnly  Storage open mode
+   */
+  constructor({path=null, readOnly=false}={}){
+    super()
+    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
+    this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
   }
 
-  console.log(bucket)
-
-  const file = await bucket.file('directory-1/foo/bar/file-test.txt')
-
-  if(!file.exists()){
-    console.log('creating file', file.id)
-    await file.create()
-
-    file.content = 'hello world\n'
-    await file.save()
+  storagePath(path){
+    return Path.normalize(
+      this.basePath+"/" + Path.dirname(path) + '/'+ sanitize(Path.basename(path))
+    )
   }
 
-  const content = await file.read()
-  const metadata = await file.getMetadata()
-  const lastchange = await file.getLastchange()
+  get name(){ return 'fs' }
+  
+  async readFile(path){
+    return new Promise((resolve,reject)=>{
 
-  console.log('file-content [', content, ']')
-  console.log('metadata', metadata)
-  console.log('lastchange', lastchange)
+      const realPath = this.storagePath(path)
+
+      debug("Reading from file: " + realPath)
+      fs.readFile(realPath, 'utf8', (err,data)=>{
+        if(err){
+          return reject(err)
+        }
+
+        resolve(data)
+      })
+
+    })
+  }
+
+  async writeFile(path, data, options){
+    return new Promise((resolve,reject)=>{
+
+      const realPath = this.storagePath(path)
+
+      debug("Writing file: " + realPath)
+      fs.writeFile(realPath, data, options, (err)=>{
+        if(err){
+          debug('failed to write file - ',path, '\nerror -',err)
+          return reject(err)
+        }
+
+        debug('wrote file:', path)
+        resolve()
+      })
+
+    })
+  }
+
+  async rmFile(path){ 
+    const realPath = this.filePath(path)
+    debug('rmFile -', realPath)
+    fs.unlinkSync(realPath)
+  }
+
+
+  async checksumFile(path){ throw new Error('not implemented') }
+
+  async readDir(path){ 
+    return new Promise((resolve, reject)=>{
+
+      const realPath = this.storagePath(path)
+      fs.readdir(realPath, (err, files)=>{
+        if(err){
+          return reject(err)
+        }
+
+        resolve(files)
+      })
+    })
+  }
+
+  async touchDir(path){ 
+    return new Promise((resolve, reject) => {
+      const realPath = this.storagePath(path)
+      debug('touch dir', realPath)
+      mkdirp(realPath, (error) => {
+        if (error) {
+          debug(`failed to mkdirp '${realPath}':`, error)
+          return reject(error)
+        }
+  
+        debug('touched', realPath)
+        // resolve to adjusted path on success
+        resolve(realPath)
+      })
+    })
+  }
 }
-</code></pre>
-<h2>Filesystem <code>.gpgfs</code></h2>
-<p>Bucket content is stored in the <code>.gpgfs</code> directory, locatable anywhere on a host file system. All files are encrypted as PGP armored output</p>
-<pre class="prettyprint source lang-console"><code>.gpgfs/
-└── buckets/
-    └── bucket-5e193906a536b1515fcd427d/
-        ├── index
-        ├── metadata
-        ├── object-lastchange/
-        │   └── object-5e193908a536b1515fcd427e-lastchange
-        ├── object-meta/
-        │   └── object-5e193908a536b1515fcd427e-meta
-        └── objects/
-            └── object-5e193908a536b1515fcd427e
-</code></pre></article>
+
+module.exports = FsStorage</code></pre>
+        </article>
     </section>
-
-
 
 
 

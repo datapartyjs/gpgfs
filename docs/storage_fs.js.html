@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>storage/fs.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="FsStorage.html">FsStorage</a></li><li></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li></ul><h3>Global</h3><ul><li><a href="global.html#S_IFMT">S_IFMT</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">storage/fs.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+const fs = require('fs')
+const Path = require('path')
+const mkdirp = require('mkdirp')
+const sanitize = require('sanitize-filename')
+const debug = require('debug')('gpgfs.fs-storage')
+
+
+const IStorage = require('../interface-storage')
+
+class FsStorage extends IStorage {
+
+  /**
+   * Local file storage backend
+   * @class
+   * @constructor
+   * @param {Object} options
+   * @param {string} options.path  Path to a `.gpgfs` directory
+   * @param {boolean} options.readOnly  Storage open mode
+   */
+  constructor({path=null, readOnly=false}={}){
+    super()
+    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
+    this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
+
+    debug('basePath =', this.basePath, ',  mode =' + this.mode)
+  }
+
+  storagePath(path){
+    return Path.normalize(
+      this.basePath+"/" + Path.dirname(path) + '/'+ sanitize(Path.basename(path))
+    )
+  }
+
+  get name(){ return 'fs' }
+
+  async fileExists(path){
+    const result = fs.existsSync( this.storagePath(path) )
+
+    debug("fileExists: ", result, path)
+    return result
+  }
+  
+  async readFile(path){
+    return new Promise((resolve,reject)=>{
+
+      const realPath = this.storagePath(path)
+
+      debug("Reading from file: " + realPath)
+      fs.readFile(realPath, 'utf8', (err,data)=>{
+        if(err){
+          return reject(err)
+        }
+
+        resolve(data)
+      })
+
+    })
+  }
+
+  async writeFile(path, data, options){
+
+    if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
+
+    return new Promise((resolve,reject)=>{
+
+      const realPath = this.storagePath(path)
+
+      debug("Writing file: " + realPath)
+      fs.writeFile(realPath, data, options, (err)=>{
+        if(err){
+          debug('failed to write file - ',path, '\nerror -',err)
+          return reject(err)
+        }
+
+        debug('wrote file:', path)
+        resolve()
+      })
+
+    })
+  }
+
+  async rmFile(path){ 
+    const realPath = this.storagePath(path)
+    debug('rmFile -', realPath)
+    fs.unlinkSync(realPath)
+  }
+
+
+  async checksumFile(path){ throw new Error('not implemented') }
+
+  async readDir(path){ 
+    return new Promise((resolve, reject)=>{
+
+      const realPath = this.storagePath(path)
+      fs.readdir(realPath, (err, files)=>{
+        if(err){
+          return reject(err)
+        }
+
+        resolve(files)
+      })
+    })
+  }
+
+  async touchDir(path){ 
+    return new Promise((resolve, reject) => {
+      const realPath = this.storagePath(path)
+      debug('touch dir', realPath)
+      mkdirp(realPath, (error) => {
+        if (error) {
+          debug(`failed to mkdirp '${realPath}':`, error)
+          return reject(error)
+        }
+  
+        // resolve to adjusted path on success
+        resolve(realPath)
+      })
+    })
+  }
+}
+
+module.exports = FsStorage</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Wed Jan 15 2020 14:17:50 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>

@@ -27,7 +27,7 @@
 
 <nav >
     
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="FsStorage.html">FsStorage</a></li><li></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li></ul><h3>Global</h3><ul><li><a href="global.html#S_IFMT">S_IFMT</a></li></ul>
 </nav>
 
 <div id="main">
@@ -42,10 +42,10 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>
+            <pre class="prettyprint source linenums"><code>const Path = require('path')
+const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const debug = require('debug')('gpgfs.Bucket')
-const Hoek = require('@hapi/hoek')
 
 const Utils = require('./utils')
 const GpgFsFile = require('./file')
@@ -79,12 +79,45 @@ class Bucket {
     debug('loaded ', this.name)
   }
 
+  async release(){
+    debug('releasing', this.id.toString())
+
+    for(let id in this._fileCache){
+      await this._fileCache[id].release()
+
+      delete this._fileCache[id].bucket
+      this._fileCache[id].bucket = null
+      delete this._fileCache[id]
+    }
+
+    delete this.index
+    delete this.metadata
+    delete this._fileCache
+
+    this.index = null
+    this.metadata = null
+    this._fileCache = {}
+  }
+
+  async releaseFile(file){
+    delete this._fileCache[file.id.toString()]
+    this._fileCache[file.id.toString()] = undefined
+  }
+
   /**
    * Check if all metadata exists on disk
    * @method
    * @returns {boolean} */
-  exists(){
-    return this.root.fileExists( this.path )
+  async exists(){
+    const existance = await Promise.all([
+      this.root.fileExists( this.indexPath ),
+      this.root.fileExists( this.metadataPath )
+    ])
+    
+    return existance.reduce(
+      (total, current)=>{ return total &amp;&amp; current },
+      true
+    )
   }
 
     /**
@@ -94,7 +127,9 @@ class Bucket {
   async create(){
     debug('create -', this.id)
 
-    if(this.exists()){ throw new Error('bucket exists') }
+    //if(this.exists()){ throw new Error('bucket exists') }
+    if(await this.root.fileExists( this.indexPath )){ throw new Error('bucket index exists') }
+    if(await this.root.fileExists( this.metadataPath )){ throw new Error('bucket metadata exists') }
 
     this.root.touchDir(this.path)
     this.root.touchDir(this.path + '/objects')
@@ -154,6 +189,8 @@ class Bucket {
       return null
     }
 
+    path = Path.join('/', path)
+
     let fileId = null
     for(const obj of this.index.objects){
       if(obj.path == path){
@@ -181,9 +218,9 @@ class Bucket {
     return file
   }
 
-  get path(){
-    return '/buckets/bucket-'+this.id.toHexString()
-  }
+  get path(){ return '/buckets/bucket-'+this.id.toHexString() }
+  get indexPath(){return this.path+'/index' }
+  get metadataPath(){return this.path+'/metadata' }
 
   async getReciepents(){
     await this.root.cacheWhoami()
@@ -306,7 +343,6 @@ class Bucket {
 
 
     for(const idx in Hoek.reach(this, 'index.objects')){
-      console.log(idx)
       
       let obj = this.index.objects[ idx ]
       if(obj.path == file.filePath || obj.objectId.id == file.id){
@@ -342,6 +378,36 @@ class Bucket {
       await this.setIndex({...this.index })
     }
   }
+
+  async unindexFile(file){
+    debug('unindex')
+    let indexes = []
+
+    await this.getIndex()
+
+
+    for(const idx in Hoek.reach(this, 'index.objects')){
+      
+      let obj = this.index.objects[ idx ]
+      if(obj.path == file.filePath || obj.objectId.id == file.id){
+        indexes.push(idx)
+      }
+    }
+
+    debug('found ', indexes.length, ' index entries matching path =', file.filePath)
+
+    if(indexes.length > 1){ throw new Error('duplicate file path in index') }
+
+    const idx = indexes[0]
+    let oldIndex =  Hoek.reach(this, 'index.objects.'+idx)
+
+    if(oldIndex){
+      debug('removing from index', oldIndex)
+      this.index.objects.splice( idx, 1 );
+
+      await this.setIndex({...this.index })
+    }
+  }
 }
 
 module.exports = Bucket</code></pre>
@@ -358,7 +424,7 @@ module.exports = Bucket</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Sat Jan 11 2020 10:29:57 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Wed Jan 15 2020 14:17:50 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>

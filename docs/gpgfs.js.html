@@ -27,7 +27,7 @@
 
 <nav >
     
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="FsStorage.html">FsStorage</a></li><li></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li></ul><h3>Global</h3><ul><li><a href="global.html#S_IFMT">S_IFMT</a></li></ul>
 </nav>
 
 <div id="main">
@@ -50,9 +50,12 @@ const GpgPromised = require('gpg-promised')
 const debug = require('debug')('gpgfs.gpgfs')
 const sanitize = require('sanitize-filename')
 
+const FuseMount = require('./fuse-mount')
 const GpgFsBucket = require('./bucket')
 const Validator = require('./validator')
 
+const IStorage = require('./interface-storage')
+const FsStorage = require('./storage/fs')
 
 class Gpgfs {
 
@@ -64,8 +67,8 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({path=null, keychain=null}={}){
-    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
+  constructor({storage=null, keychain=null}={}){
+    this.storage = storage || new FsStorage()
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
     this.validator = new Validator()
@@ -97,9 +100,9 @@ class Gpgfs {
   }
 
 
-  /** @member {Bucket}  */
-  static get Bucket () {
-    return GpgFsBucket
+  /** @member {FuseMount}  */
+  static get FuseMount () {
+    return FuseMount
   }
 
   /** 
@@ -152,15 +155,15 @@ class Gpgfs {
 
     if(!bucket){
       //! bucket does not exist yet
-      bucket = new Gpgfs.Bucket({name, root: this})
+      bucket = new GpgFsBucket({name, root: this})
     }
 
     return bucket
   }
 
 
-  fileExists(path){
-    return fs.existsSync( this.filePath(path) )
+  async fileExists(path){
+    return await this.storage.fileExists(path)
   }
 
   filePath(path){
@@ -174,6 +177,7 @@ class Gpgfs {
   }
 
   async writeFile(path, data, options){
+    if(this.storage.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
 
     debug('writeFile -', path, options)
     let content = data
@@ -187,48 +191,22 @@ class Gpgfs {
 
       if(options.encrypt){
 
-        if(typeof content !== 'string'){ content = JSON.stringify(content) }
+        if(
+          typeof content !== 'string'
+          &amp;&amp; !(content instanceof Buffer)
+        ){ content = JSON.stringify(content) }
 
         await this.cacheWhoami()
         content = await this.keychain.encrypt(content, options.to, this.whoami)
       }
     }
 
-    return new Promise((resolve,reject)=>{
-
-      const realPath = this.filePath(path)
-
-      debug("Writing file: " + realPath)
-      fs.writeFile(realPath, content, {
-        mode: 0o600
-      }, (err)=>{
-        if(err){
-          debug('failed to write file - ',path, '\nerror -',err)
-          return reject(err)
-        }
-
-        debug('wrote file:', path)
-        resolve()
-      })
-
-    })
+    return await this.storage.writeFile(path, content, {mode: 0o600})
   }
 
   async readFile(path, decrypt=false, model){
-    let content = await new Promise((resolve,reject)=>{
 
-      const realPath = this.filePath(path)
-
-      debug("Reading from file: " + realPath)
-      fs.readFile(realPath, 'utf8', (err,data)=>{
-        if(err){
-          return reject(err)
-        }
-
-        resolve(data)
-      })
-
-    })
+    let content = await this.storage.readFile(path)
 
     if(decrypt){
       debug('readFile - decrypt')
@@ -239,12 +217,16 @@ class Gpgfs {
 
     if(model){
       debug('readFile - json parse')
-      const jsonContent = JSON.parse(content)
+      const jsonContent = JSON.parse(content.toString())
       debug('readFile - validate')
       content = await this.validateModel(model, jsonContent)
     }
 
     return content
+  }
+
+  async rmFile(path){
+    await this.storage.rmFile(path)
   }
 
   async getBucketIds(){
@@ -258,7 +240,7 @@ class Gpgfs {
   }
 
 
-  pathToBucketRoot({bucketId}){
+  /*pathToBucketRoot({bucketId}){
     return Path.join(this.basePath, 'buckets', `bucket-${bucketId}`)
   }
 
@@ -272,37 +254,14 @@ class Gpgfs {
 
   pathToObjectMeta({bucketId, objectId}){
     return Path.join(pathToBucketRoot(bucketId), 'index')
-  }
+  }*/
 
   async readDir (path){
-    return new Promise((resolve, reject)=>{
-
-      const realPath = this.filePath(path)
-      fs.readdir(realPath, (err, files)=>{
-        if(err){
-          return reject(err)
-        }
-
-        resolve(files)
-      })
-    })
+    return await this.storage.readDir(path)
   }
 
   async touchDir (path){
-    return new Promise((resolve, reject) => {
-      const basedPath = Path.join(this.basePath, path)
-      debug('touch dir', basedPath)
-      mkdirp(basedPath, (error) => {
-        if (error) {
-          debug(`failed to mkdirp '${basedPath}':`, error)
-          return reject(error)
-        }
-  
-        debug('touched', basedPath)
-        // resolve to adjusted path on success
-        resolve(basedPath)
-      })
-    })
+    return await this.storage.touchDir(path)
   }
   
 
@@ -327,7 +286,7 @@ module.exports = Gpgfs</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Sat Jan 11 2020 10:29:57 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Wed Jan 15 2020 14:17:50 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
