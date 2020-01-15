@@ -59,6 +59,9 @@ class FsStorage extends IStorage {
   }
 
   async writeFile(path, data, options){
+
+    if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
+
     return new Promise((resolve,reject)=>{
 
       const realPath = this.storagePath(path)

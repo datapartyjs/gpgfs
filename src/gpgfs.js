@@ -10,6 +10,7 @@ const FuseMount = require('./fuse-mount')
 const GpgFsBucket = require('./bucket')
 const Validator = require('./validator')
 
+const IStorage = require('./interface-storage')
 const FsStorage = require('./storage/fs')
 
 class Gpgfs {
@@ -22,12 +23,11 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({storage=null, keychain=null, readOnly=false}={}){
+  constructor({storage=null, keychain=null}={}){
     this.storage = storage || new FsStorage()
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
     this.validator = new Validator()
-    this.mode = (readOnly == false) ? Gpgfs.MODE_WRITE : Gpgfs.MODE_READ
 
     this._bucketCache = {}
     this._whoamiCache = null
@@ -55,9 +55,6 @@ class Gpgfs {
     await this.touchDir('/buckets')
   }
 
-
-  static get MODE_READ(){ return 1 }
-  static get MODE_WRITE(){ return 2 }
 
   /** @member {FuseMount}  */
   static get FuseMount () {
@@ -136,7 +133,7 @@ class Gpgfs {
   }
 
   async writeFile(path, data, options){
-    if(this.mode!=Gpgfs.MODE_WRITE){ throw new Error('read only') }
+    if(this.storage.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
 
     debug('writeFile -', path, options)
     let content = data
