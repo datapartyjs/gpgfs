@@ -21,7 +21,7 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({path=null, keychain=null, readOnly=false}={}){
+  constructor({storage=new FsStroage(), keychain=null, readOnly=false}={}){
     this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
@@ -247,34 +247,11 @@ class Gpgfs {
   }
 
   async readDir (path){
-    return new Promise((resolve, reject)=>{
-
-      const realPath = this.filePath(path)
-      fs.readdir(realPath, (err, files)=>{
-        if(err){
-          return reject(err)
-        }
-
-        resolve(files)
-      })
-    })
+    return this.storage.readDir(path)
   }
 
   async touchDir (path){
-    return new Promise((resolve, reject) => {
-      const basedPath = Path.join(this.basePath, path)
-      debug('touch dir', basedPath)
-      mkdirp(basedPath, (error) => {
-        if (error) {
-          debug(`failed to mkdirp '${basedPath}':`, error)
-          return reject(error)
-        }
-  
-        debug('touched', basedPath)
-        // resolve to adjusted path on success
-        resolve(basedPath)
-      })
-    })
+    return this.storage.touchDir(path)
   }
   
 
