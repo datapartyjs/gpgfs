@@ -101,7 +101,7 @@ class GCEStorage extends IStorage {
     this.assertEnabled()
     
     const realPath = this.storagePath(path)
-    debug("Reading from file: " + realPath)
+    debug("downloading file: " + realPath)
     const file = this.bucket.file( realPath )
     const downloadResult = await file.download()
     const content = downloadResult[0]
@@ -114,10 +114,10 @@ class GCEStorage extends IStorage {
     if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
     
     const realPath = this.storagePath(path)
-    debug("Writing file: " + realPath)
+    debug("uploading file: " + realPath)
     const file = this.bucket.file( realPath )
     await file.save(data)
-    debug('wrote file:', path)
+    debug('upload finished:', path)
   }
 
   async rmFile(path){ 
