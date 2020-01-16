@@ -1,7 +1,7 @@
 {
   "name": "gpgfs",
   "private": false,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "gpgfs",
   "author": "RosHub Inc. <code@roshub.io>",
   "license": "Apache-2.0",

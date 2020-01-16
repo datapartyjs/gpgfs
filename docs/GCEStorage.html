@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>FsStorage - Documentation</title>
+    <title>GCEStorage - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -32,7 +32,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">FsStorage</h1>
+    <h1 class="page-title">GCEStorage</h1>
     
 
     
@@ -45,7 +45,7 @@
 <header>
     
         <h2>
-        FsStorage
+        GCEStorage
         </h2>
         
     
@@ -59,7 +59,7 @@
 
     
 
-    <h4 class="name" id="FsStorage"><span class="type-signature"></span>new FsStorage<span class="signature">(options)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="GCEStorage"><span class="type-signature"></span>new GCEStorage<span class="signature">(options)</span><span class="type-signature"></span></h4>
 
     
 
@@ -71,7 +71,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="storage_fs.js.html">storage/fs.js</a>, <a href="storage_fs.js.html#line21">line 21</a>
+        <a href="storage_gce-remote.js.html">storage/gce-remote.js</a>, <a href="storage_gce-remote.js.html#line29">line 29</a>
     </li></ul></dd>
     
 
@@ -111,7 +111,7 @@
 
 
 <div class="description">
-    <p>Local file storage backend</p>
+    <p>GCE storage backend. Accepts all options from GCE Storage library See <a href="%60@google-cloud/storage.StorageOptions%60">https://googleapis.dev/nodejs/storage/latest/global.html#StorageOptions</a></p>
 </div>
 
 
@@ -191,7 +191,7 @@
 
         <tr>
             
-                <td class="name"><code>path</code></td>
+                <td class="name"><code>bucketName</code></td>
             
 
             <td class="type">
@@ -207,7 +207,191 @@
 
             
 
-            <td class="description last"><p>Path to a <code>.gpgfs</code> directory</p></td>
+            <td class="description last"><p>Name of GCE Storage bucket</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>location</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>GCE storage location</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>storageClass</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>GCE storage class</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>projectId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keyFilename</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>email</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>credentials</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>autoRetry</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>maxRetries</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
         </tr>
 
     
