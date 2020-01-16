@@ -19,12 +19,15 @@ class FsStorage extends IStorage {
    * @param {boolean} options.readOnly  Storage open mode
    */
   constructor({path=null, readOnly=false}={}){
-    super()
-    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
-    this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
+    super({readOnly})
 
-    debug('basePath =', this.basePath, ',  mode =' + this.mode)
+    this.basePath = !path ? Path.join(process.cwd(), '.gpgfs') : path
+
+    debug('basePath =', this.basePath)
   }
+
+  async start(){ debug('start') }
+  async stop(){ debug('stop') }
 
   storagePath(path){
     return Path.normalize(
@@ -35,6 +38,7 @@ class FsStorage extends IStorage {
   get name(){ return 'fs' }
 
   async fileExists(path){
+    this.assertEnabled()
     const result = fs.existsSync( this.storagePath(path) )
 
     debug("fileExists: ", result, path)
@@ -42,6 +46,7 @@ class FsStorage extends IStorage {
   }
   
   async readFile(path){
+    this.assertEnabled()
     return new Promise((resolve,reject)=>{
 
       const realPath = this.storagePath(path)
@@ -59,7 +64,7 @@ class FsStorage extends IStorage {
   }
 
   async writeFile(path, data, options){
-
+    this.assertEnabled()
     if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
 
     return new Promise((resolve,reject)=>{
@@ -81,15 +86,14 @@ class FsStorage extends IStorage {
   }
 
   async rmFile(path){ 
+    this.assertEnabled()
     const realPath = this.storagePath(path)
     debug('rmFile -', realPath)
     fs.unlinkSync(realPath)
   }
 
-
-  async checksumFile(path){ throw new Error('not implemented') }
-
-  async readDir(path){ 
+  async readDir(path){
+    this.assertEnabled()
     return new Promise((resolve, reject)=>{
 
       const realPath = this.storagePath(path)
@@ -103,7 +107,8 @@ class FsStorage extends IStorage {
     })
   }
 
-  async touchDir(path){ 
+  async touchDir(path){
+    this.assertEnabled()
     return new Promise((resolve, reject) => {
       const realPath = this.storagePath(path)
       debug('touch dir', realPath)

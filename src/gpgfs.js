@@ -1,4 +1,3 @@
-
 const fs = require('fs')
 const Path = require('path')
 const mkdirp = require('mkdirp')
@@ -12,6 +11,7 @@ const Validator = require('./validator')
 
 const IStorage = require('./interface-storage')
 const FsStorage = require('./storage/fs')
+const GCEStorage = require('./storage/gce-remote')
 
 class Gpgfs {
 
@@ -51,6 +51,7 @@ class Gpgfs {
    * Open file system for read & write operations 
    * @method */
   async open(){
+    await this.storage.start()
     await this.keychain.open()
     await this.touchDir('/buckets')
   }
@@ -59,6 +60,13 @@ class Gpgfs {
   /** @member {FuseMount}  */
   static get FuseMount () {
     return FuseMount
+  }
+  
+  static get StorageEngine(){
+    return {
+      FsStorage: FsStorage,
+      GCEStorage: GCEStorage
+    }
   }
 
   /** 
