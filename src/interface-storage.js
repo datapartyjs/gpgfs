@@ -2,8 +2,27 @@ const debug = require('debug')('gpgfs.interface-storage')
 
 class IStorage {
 
-  constructor(){
-    debug('new', this.name)
+  constructor({readOnly}){
+    this.enabled = true
+    this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
+    
+    debug('new', this.name, '  mode=', this.mode)
+  }
+
+  async start(){
+    debug('start')
+    this.enabled = true
+  }
+
+  async stop(){
+    debug('stop')
+    this.enabled = false
+  }
+
+  assertEnabled(){
+    if(this.enabled !== true){
+      throw new Error('storage not enabled')
+    }
   }
 
   get name(){ throw new Error('not implemented') }
