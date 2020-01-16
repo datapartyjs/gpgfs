@@ -25,9 +25,9 @@ class File {
    * Open and read metadata 
    * @method */
   async open(){
-    await this.getMetadata()
-    await this.getLastchange()
-    this.filePath = this.metadata.path
+    /*await this.getMetadata()
+    await this.getLastchange()*/
+    //this.filePath = this.metadata.path
     debug('loaded ', this.filePath)
   }
 
@@ -172,6 +172,7 @@ class File {
    * @returns {gpgfs_model.object_meta} See [`gpgfs_model.object_meta`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/object_meta.js}
    */
   async getMetadata(){
+    if(this.metadata){return}
     this.metadata = await this.bucket.root.readFile( this.metadataPath, true, 'object_meta')
     return this.metadata
   }
@@ -222,6 +223,7 @@ class File {
    * @returns {gpgfs_model.object_lastchange} See [`gpgfs_model.object_lastchange`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/object_lastchange.js}
    */
   async getLastchange(){
+    if(this.lastchange){return}
     this.lastchange = await this.bucket.root.readFile( this.lastchangePath, true, 'object_lastchange')
     return this.lastchange  
   }
@@ -230,9 +232,9 @@ class File {
     const nowTime = (new Date()).toISOString()
 
     //const md5sum = md5(this.content)
-    const hash = {
+    /*const hash = {
       sha256: crypto.createHash('sha256').update(this.content).digest('hex')
-    }
+    }*/
 
     await this.bucket.root.cacheWhoami()
 
@@ -247,7 +249,7 @@ class File {
       },
       size: this.content.length,
       actor: this.bucket.root.whoami,
-      hash
+      //hash
     })
 
     debug('updateLastChange -', newLastchange)

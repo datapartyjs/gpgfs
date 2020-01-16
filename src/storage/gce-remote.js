@@ -26,7 +26,7 @@ class GCEStorage extends IStorage {
    * @param {string} options.maxRetries
    * @param {boolean} options.readOnly          Storage open mode
    */
-  constructor({bucketName='gpgfs', path='/', location='us-central1', storageClass='standard', readOnly=false, ...gceOptions}={}){
+  constructor({bucketName='gpgfs', path='gpgfs', location='us-central1', storageClass='standard', readOnly=false, ...gceOptions}={}){
     super({readOnly})
 
     this.location = location
@@ -35,7 +35,7 @@ class GCEStorage extends IStorage {
     this.storage = new CloudStorage(gceOptions)
     this.bucket = null
   
-    this.basePath = path || '/'
+    this.basePath = path || 'gpgfs'
   }
 
   async start(){
@@ -89,11 +89,12 @@ class GCEStorage extends IStorage {
 
   async fileExists(path){
     this.assertEnabled()
-    const file = this.bucket.file( this.storagePath(path) )
+    const realPath = this.storagePath(path)
+    const file = this.bucket.file( realPath )
     const result = await file.exists()
     const existance = result[0]
 
-    debug("fileExists: ", existance, path)
+    debug("fileExists: ", existance, realPath)
     return existance
   }
   
@@ -117,7 +118,7 @@ class GCEStorage extends IStorage {
     debug("uploading file: " + realPath)
     const file = this.bucket.file( realPath )
     await file.save(data)
-    debug('upload finished:', path)
+    debug('upload finished:', realPath)
   }
 
   async rmFile(path){ 
@@ -131,16 +132,33 @@ class GCEStorage extends IStorage {
 
   async readDir(path, options){
     this.assertEnabled()
-    
+
+    path = path.replace(this.basePath, '')
+
     const realPath = this.storagePath(path)
+    debug('readdir', realPath)
     const files = (await this.bucket.getFiles({
       ...options,
-      delimiter: '/',
-      prefix: realPath
+/*      delimiter: '/',*/
+      directory: realPath
     }))[0]
-    
-    
-    return files.map(file => file.name)
+
+    const names = files.map(file => {
+      let name = file.name.replace(realPath, '')
+
+      name = name.split('/')[1]
+      return name
+
+    })
+      .filter(name => !name.endsWith('.touch'))
+      .filter( (name, idx, arr)=>{
+        return arr.indexOf(name) === idx
+      })
+
+
+    debug('files', names)
+
+    return names
   }
 
   async dirExists(path){

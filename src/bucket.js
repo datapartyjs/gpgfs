@@ -29,8 +29,12 @@ class Bucket {
     this.index = null
     this.metadata = null
     this._fileCache = {}
-    await this.getIndex()
-    await this.getMetadata()
+    
+    await Promise.all([
+      this.getIndex(),
+      this.getMetadata()
+    ])
+    
     this.name = this.metadata.bucketName
     debug('loaded ', this.name)
   }
@@ -154,7 +158,7 @@ class Bucket {
         break;
       }
     }
-
+ 
     if(!fileId){ return null }
 
     //! get file from cache

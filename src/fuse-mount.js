@@ -227,7 +227,7 @@ class FuseMount {
       await file.read()
     }
 
-    cb(0, fd)
+    process.nextTick(cb, 0, fd)
   }
 
   async oncreate(path, mode, cb){
@@ -249,7 +249,7 @@ class FuseMount {
     }
 
 
-    return cb(0, fd)
+    return process.nextTick(cb, 0, fd)
   }
 
   async onunlink(path, cb){
@@ -270,7 +270,7 @@ class FuseMount {
       throw err
     }
 
-    return cb(0)
+    return process.nextTick(cb,0)
   }
 
   async onread(path, fd, buf, len, pos, cb){
@@ -459,7 +459,7 @@ class FuseMount {
     }, this.contentCacheMs)
 
 
-    cb(0)
+    process.nextTick(cb,0)
   }
 
   async ontruncate(path, size, cb){

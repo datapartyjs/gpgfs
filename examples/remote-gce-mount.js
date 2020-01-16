@@ -5,7 +5,7 @@ const GCEStorage = gpgfs.StorageEngine.GCEStorage
 async function main(){
   
   const gceStorage = new GCEStorage({
-    projectId: 'my-gce-project-id',
+    projectId: 'roshub-staging',
     keyFilename: './gpgfs/staging/gce-key.json'
   })
   
@@ -17,11 +17,6 @@ async function main(){
   await remote.keychain.trustCard()
 
   const bucket = await remote.bucket('vault')
- 
-  if(!bucket.exists()){
-    console.log('creating bucket')
-    await bucket.create()
-  }
 
   if(!await bucket.exists()){
     console.log('creating bucket')
