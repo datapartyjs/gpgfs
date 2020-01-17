@@ -1,12 +1,10 @@
 const Path = require('path')
+const {promisfy, waitFor} = require('promisfy')
 const sanitize = require('sanitize-filename')
 const debug = require('debug')('gpgfs.sftp-storage')
 
 const SSHClient = require('ssh2').Client
 const IStorage = require('../interface-storage')
-
-class GCEStorage extends IStorage {
-
 
 
 class SFTPStorage extends IStorage {
@@ -25,7 +23,7 @@ class SFTPStorage extends IStorage {
    * @param {string} options.privateKey
    * @param {boolean} options.readOnly          Storage open mode
    */
-  constructor({host, port, user, path, readOnly=false stream=null, privateKey=null, agent=process.env.SSH_AUTH_SOCK}={}){
+  constructor({host, port, user, path, readOnly=false, stream=null, privateKey=null, agent=process.env.SSH_AUTH_SOCK}={}){
     super({readOnly})
     
     this.host = host
@@ -34,9 +32,10 @@ class SFTPStorage extends IStorage {
     this.agent = agent
     this.stream = stream
     this.privateKey = privateKey
-    this.basePath = path || 'gpgfs'
+    this.basePath = path || '.gpgfs/'
     
     this.sftp = null
+    this.sftpFunc = {}
     this.connection = null
     this.isRelayClient = false
   }
@@ -56,15 +55,16 @@ class SFTPStorage extends IStorage {
       this.connection.sftp( (err, sftpClient)=>{
         if(err){ return reject(err) }
         
+        debug('openSftp - ready')
+        
         this.sftp = sftpClient
         
-        this.sftpPromise = {
-          stat: promisify(this.sftp.stat),
-          mkdir: promisify(this.sftp.mkdir),
-          unlink: promisify(this.sftp.unlink),
-          readdir: promisify(this.sftp.readdir),
-          ccreateReadStream: promisify(this.sft.createReadStream),
-          createWriteStream: promisify(this.sft.createWriteStream)
+
+        this.sftpFunc = {
+          stat: promisfy(this.sftp.stat, this.sftp),
+          mkdir: promisfy(this.sftp.mkdir, this.sftp),
+          unlink: promisfy(this.sftp.unlink, this.sftp),
+          readdir: promisfy(this.sftp.readdir, this.sftp)
         }
         resolve()
       })
@@ -107,9 +107,9 @@ class SFTPStorage extends IStorage {
     try{
 
       const connConfig = {
-        username: this.host,
+        username: this.user,
         privateKey: this.privateKey,
-        agent: this.privateKey ? null : this.agent
+        agent: this.privateKey ? null : this.agent,
         sock: this.stream,
         host: !this.stream ? this.host : null,
         port: !this.stream ? this.port : null
@@ -126,7 +126,7 @@ class SFTPStorage extends IStorage {
     
     await connect
     await this.openSftp()
-
+    debug('start',this.sftpFunc)
   }
 
   async onReady(){
@@ -148,40 +148,59 @@ class SFTPStorage extends IStorage {
 
   get name(){ return 'sftp' }
 
-  async fileExists(path){
+  async fileExists(path=''){
     this.assertEnabled()
     const realPath = this.storagePath(path)
-    const file = await this.sftp.stat(realPath)
     
-    
-    
-    const result = await file.exists()
-    const existance = result[0]
-
-    debug("fileExists: ", existance, realPath)
-    return existance
+    try{
+      const file = await this.sftpFunc.stat(realPath)
+      
+      if(!file){return false}
+      
+      return true
+    }
+    catch(err){
+      if(err.message == 'No such file'){ return false }
+      
+      throw err
+    }
   }
   
-  async readFile(path){
+  async readFile(path=''){
     this.assertEnabled()
     
     const realPath = this.storagePath(path)
     debug("downloading file: " + realPath)
-    const file = this.bucket.file( realPath )
-    const downloadResult = await file.download()
-    const content = downloadResult[0]
+
+    const fileStream = this.sftp.createReadStream(realPath, {
+      flags: 'r',
+      encoding: null,
+      handle: null,
+      mode: 0o666,
+      autoClose: true
+    })
+    
+    const content = await waitFor(fileStream, 'data')
     
     return content
   }
 
-  async writeFile(path, data, options){
+  async writeFile(path, data){
     this.assertEnabled()
     if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
     
     const realPath = this.storagePath(path)
     debug("uploading file: " + realPath)
-    const file = this.bucket.file( realPath )
-    await file.save(data)
+    const fileStream = this.sftp.createWriteStream(realPath, {
+      flags: 'r+',
+      encoding: null,
+      handle: null,
+      mode: 0o666,
+      autoClose: false
+    })
+    
+    fileStream.end(data)
+      
     debug('upload finished:', realPath)
   }
 
@@ -190,60 +209,41 @@ class SFTPStorage extends IStorage {
     const realPath = this.storagePath(path)
     debug('rmFile -', realPath)
     
-    const file = this.bucket.file( realPath )
-    await file.delete()
+    await this.sftpFunc.unlink(realPath)
   }
 
-  async readDir(path, options){
+  async readDir(path='.', options){
     this.assertEnabled()
-
-    path = path.replace(this.basePath, '')
-
+    
     const realPath = this.storagePath(path)
     debug('readdir', realPath)
-    const files = (await this.bucket.getFiles({
-      ...options,
-/*      delimiter: '/',*/
-      directory: realPath
-    }))[0]
+    
+    try{
+      const files = await this.sftpFunc.readdir(realPath)
 
-    const names = files.map(file => {
-      let name = file.name.replace(realPath, '')
+      const names = files.map( file => file.filename )
 
-      name = name.split('/')[1]
-      return name
-
-    })
-      .filter(name => !name.endsWith('.touch'))
-      .filter( (name, idx, arr)=>{
-        return arr.indexOf(name) === idx
-      })
-
-
-    debug('files', names)
-
-    return names
+      return names
+    }
+    catch(err){
+      if(err.message == 'No such file'){ return [] }
+      
+      throw err
+    }
   }
 
-  async dirExists(path){
-    const files = await this.readDir(path, {maxResults: 1})
-
-    return (files.length > 0)
-  }
   
-  
-  async touchDir(path){
+  async touchDir(path=''){
     this.assertEnabled()
     
     const realPath = this.storagePath(path)
     debug('touch dir', realPath)
-    const existance = await this.dirExists(realPath)
+    const existance = await this.fileExists(realPath)
     
     if(!existance){
       debug('creating dir place holder', realPath)
-      await this.writeFile(path+'/.touch', '1')
+      await this.sftpFunc.mkdir(realPath)
     }
-    
     
   }
 
