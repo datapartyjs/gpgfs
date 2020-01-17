@@ -19,6 +19,7 @@ class Bucket {
     this.index = null
     this.metadata = null
     this._fileCache = {}
+    this._indexFlush = null
     debug('new -', name || id)
   }
 
@@ -273,8 +274,15 @@ class Bucket {
       objects: []
     }, value)
 
+    
+    if(this._indexFlush){
+      clearTimeout(this._indexFlush)
+      debug('delay')
+    }
 
-    await this.root.writeFile( this.path + '/index',
+    this._indexFlush = setTimeout(async ()=>{
+
+      await this.root.writeFile( this.path + '/index',
       newIndex,
       {
         model: 'bucket_index',
@@ -282,6 +290,9 @@ class Bucket {
         to: await this.getReciepents()
       }
     )
+      
+    }, 10000)
+
 
     if(!this.index){
       debug('creating index')
