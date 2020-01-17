@@ -15,7 +15,8 @@
   "scripts": {
     "clean": "rm -rf docs",
     "build-docs": "npx jsdoc -c jsdoc.json; cd docs; mv gpgfs/*/* ./; rm -rf gpgfs; cd -",
-    "mount": "DEBUG=gpgfs.* nodejs ./examples/mount-buckets.js"
+    "mount": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-buckets.js",
+    "mount-sftp": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-sftp.js"
   },
   "main": "src/index.js",
   "dependencies": {
@@ -30,7 +31,10 @@
     "md5": "^2.2.1",
     "mkdirp": "^0.5.1",
     "node-fuse-bindings": "^2.12.4",
-    "sanitize-filename": "^1.6.3"
+    "promisfy": "^1.2.0",
+    "promisify": "^0.0.3",
+    "sanitize-filename": "^1.6.3",
+    "ssh2": "^0.8.7"
   },
   "devDependencies": {
     "docdash": "^1.1.1",

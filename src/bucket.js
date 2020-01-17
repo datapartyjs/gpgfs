@@ -29,8 +29,12 @@ class Bucket {
     this.index = null
     this.metadata = null
     this._fileCache = {}
-    await this.getIndex()
-    await this.getMetadata()
+    
+    await Promise.all([
+      this.getIndex(),
+      this.getMetadata()
+    ])
+    
     this.name = this.metadata.bucketName
     debug('loaded ', this.name)
   }
@@ -70,10 +74,10 @@ class Bucket {
       this.root.fileExists( this.metadataPath )
     ])
     
-    return existance.reduce(
-      (total, current)=>{ return total && current },
-      true
-    )
+    let e = existance[0] && existance[1]
+    
+    debug('exists', e)
+    return e
   }
 
     /**
@@ -87,10 +91,10 @@ class Bucket {
     if(await this.root.fileExists( this.indexPath )){ throw new Error('bucket index exists') }
     if(await this.root.fileExists( this.metadataPath )){ throw new Error('bucket metadata exists') }
 
-    this.root.touchDir(this.path)
-    this.root.touchDir(this.path + '/objects')
-    this.root.touchDir(this.path + '/object-meta')
-    this.root.touchDir(this.path + '/object-lastchange')
+    await this.root.touchDir(this.path)
+    await this.root.touchDir(this.path + '/objects')
+    await this.root.touchDir(this.path + '/object-meta')
+    await this.root.touchDir(this.path + '/object-lastchange')
 
     const nowTime = (new Date()).toISOString()
 
@@ -154,7 +158,7 @@ class Bucket {
         break;
       }
     }
-
+ 
     if(!fileId){ return null }
 
     //! get file from cache

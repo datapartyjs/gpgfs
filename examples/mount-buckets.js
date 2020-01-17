@@ -10,7 +10,7 @@ async function main(){
 
   const bucket = await securefs.bucket('staging')
 
-  if(!bucket.exists()){
+  if(!await bucket.exists()){
     console.log('creating bucket')
     await bucket.create()
   }
