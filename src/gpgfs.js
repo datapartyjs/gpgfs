@@ -12,6 +12,7 @@ const Validator = require('./validator')
 const IStorage = require('./interface-storage')
 const FsStorage = require('./storage/fs')
 const GCEStorage = require('./storage/gce-remote')
+const SFTPStorage = require('./storage/sftp-remote')
 
 class Gpgfs {
 
@@ -65,7 +66,8 @@ class Gpgfs {
   static get StorageEngine(){
     return {
       FsStorage: FsStorage,
-      GCEStorage: GCEStorage
+      GCEStorage: GCEStorage,
+      SFTPStorage: SFTPStorage
     }
   }
 
