@@ -1,4 +1,5 @@
 const fs = require('fs')
+const os = require('os')
 const Path = require('path')
 const mkdirp = require('mkdirp')
 const GpgPromised = require('gpg-promised')
@@ -24,7 +25,7 @@ class Gpgfs {
    * @param {string} options.path  Path to a `gpgfs` file directory
    * @param {GpgPromised.KeyChain} options.keychain See [`GpgPromised.KeyChain`]{@link https://datapartyjs.github.io/gpg-promised/KeyChain.html}
    */
-  constructor({storage=null, keychain=null}={}){
+  constructor({storage=null, keychain=os.homedir()+'/.gnupg'}={}){
     this.storage = storage || new FsStorage()
     this.keychainPath = !keychain ? Path.join(process.cwd(), '.gnupg') : keychain
     this.keychain = new GpgPromised.KeyChain(this.keychainPath)
@@ -157,15 +158,21 @@ class Gpgfs {
 
       if(options.encrypt){
 
-        if(
-          typeof content !== 'string'
-          && !(content instanceof Buffer)
-        ){ content = JSON.stringify(content) }
+        debug('writeFile - content typeof', typeof content, content instanceof Buffer)
+        
+        /*if(content instanceof Buffer){
+          content = content
+        }*/
+        
+        if( typeof content !== 'string' && !(content instanceof Buffer)){ content = JSON.stringify(content) }
 
+        
         await this.cacheWhoami()
         content = await this.keychain.encrypt(content, options.to, this.whoami)
       }
     }
+    
+    debug('writeFile -', content.length, path)
 
     return await this.storage.writeFile(path, content, {mode: 0o600})
   }
@@ -174,14 +181,14 @@ class Gpgfs {
 
     let content = await this.storage.readFile(path)
 
-    if(decrypt){
+    if(decrypt && content && content.length > 0){
       debug('readFile - decrypt')
       content = await this.keychain.decrypt(content)
 
       /** @todo  verify signatures - https://github.com/datapartyjs/gpg-promised/issues/9  */
     }
 
-    if(model){
+    if(model && content && content.length > 0){
       debug('readFile - json parse')
       const jsonContent = JSON.parse(content.toString())
       debug('readFile - validate')

@@ -15,7 +15,8 @@
   "scripts": {
     "clean": "rm -rf docs",
     "build-docs": "npx jsdoc -c jsdoc.json; cd docs; mv gpgfs/*/* ./; rm -rf gpgfs; cd -",
-    "mount": "DEBUG=gpgfs.*,gpg*,-gpgfs.fuse-mount.* nodejs ./examples/mount-buckets.js"
+    "mount": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-buckets.js",
+    "mount-sftp": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-sftp.js"
   },
   "main": "src/index.js",
   "dependencies": {

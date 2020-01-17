@@ -1,15 +1,27 @@
+ 
+const os = require('os')
 const gpgfs = require('../src/index')
-
+const SFTPStorage = gpgfs.StorageEngine.SFTPStorage
 
 async function main(){
-  const securefs = new gpgfs({keychan: '/home/alanm/.gnupg'})
+  
+  const sftpStorage = new SFTPStorage({
+    host: process.argv[2],
+    port: 22,
+    user: os.userInfo().username,
+    path: os.userInfo().homedir + '/.gpgfs'
+  })
+  
+  await sftpStorage.start()
+  
+  const remote = new gpgfs({storage: sftpStorage})
 
-  await securefs.open()
+  await remote.open()
 
   //! Trust user
-  //await securefs.keychain.trustCard()
+  await remote.keychain.trustCard()
 
-  const bucket = await securefs.bucket('staging')
+  const bucket = await remote.bucket('vault')
 
   if(!await bucket.exists()){
     console.log('creating bucket')
@@ -26,16 +38,21 @@ async function main(){
     console.log('creating file', file.id)
     await file.create()
 
-    //file.content = 
-    await file.save( Buffer.from('hello world\n') )
+    file.content = 'hello world\n'
+    await file.save()
   }
 
   const content = await file.read()
   const metadata = await file.getMetadata()
 
-  console.log('file-content [', content.toString(), ']')
+  console.log('file-content [', content, ']')
   console.log('metadata', metadata)
   console.log('lastchange', await file.getLastchange())
+
+  const fuse = new gpgfs.FuseMount('gpgfs-sftp')
+  await fuse.start()
+
+  await fuse.addBucket(bucket)
 }
 
 
@@ -45,5 +62,3 @@ main().catch((error) => {
   console.error(error.message)
   process.exit()
 })
-
-

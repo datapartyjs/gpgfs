@@ -65,6 +65,17 @@ class File {
 
     return  contentExists
   }
+  
+  async existsFully(){
+    const existance = await Promise.all([
+      this.bucket.root.fileExists( this.path ),
+      this.bucket.root.fileExists( this.metadataPath ),
+      this.bucket.root.fileExists( this.lastchangePath )
+    ])
+
+    return existance[0] && existance[1] && existance[2]
+  }
+
 
   get path(){
     return Path.join(
@@ -142,6 +153,13 @@ class File {
    */
   async save(newContent=null){
 
+    if(await this.existsFully()){
+      await Promise.all([
+        await this.getMetadata(),
+        await this.getLastchange()
+      ])
+    }
+    
     const contentReaders = Utils.uniqueArray(
       [ this.metadata.owner ].concat(
         this.metadata.readers,

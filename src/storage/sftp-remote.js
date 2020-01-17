@@ -132,13 +132,6 @@ class SFTPStorage extends IStorage {
   async onReady(){
     debug('authed and ready')
   }
-
-  
-  
-  
-  
-  
-
   
   storagePath(path){
     return Path.normalize(
@@ -155,11 +148,14 @@ class SFTPStorage extends IStorage {
     try{
       const file = await this.sftpFunc.stat(realPath)
       
+      debug('fileExists', file)
+      
       if(!file){return false}
       
       return true
     }
     catch(err){
+      debug('fileExists err')
       if(err.message == 'No such file'){ return false }
       
       throw err
@@ -168,6 +164,9 @@ class SFTPStorage extends IStorage {
   
   async readFile(path=''){
     this.assertEnabled()
+    
+    debug('readFile',path)
+    if(!await this.fileExists(path)){ return }
     
     const realPath = this.storagePath(path)
     debug("downloading file: " + realPath)
@@ -189,10 +188,12 @@ class SFTPStorage extends IStorage {
     this.assertEnabled()
     if(this.mode!=IStorage.MODE_WRITE){ throw new Error('read only') }
     
+    const existance = await this.fileExists(path)
+    
     const realPath = this.storagePath(path)
     debug("uploading file: " + realPath)
     const fileStream = this.sftp.createWriteStream(realPath, {
-      flags: 'r+',
+      flags: existance ? 'r+' : 'w',
       encoding: null,
       handle: null,
       mode: 0o666,
@@ -212,7 +213,7 @@ class SFTPStorage extends IStorage {
     await this.sftpFunc.unlink(realPath)
   }
 
-  async readDir(path='.', options){
+  async readDir(path='.'){
     this.assertEnabled()
     
     const realPath = this.storagePath(path)
@@ -232,16 +233,30 @@ class SFTPStorage extends IStorage {
     }
   }
 
+  async dirExists(path){
+    const files = await this.readDir(path)
+
+    return (files.length > 0)
+  }
   
+ 
   async touchDir(path=''){
     this.assertEnabled()
     
     const realPath = this.storagePath(path)
     debug('touch dir', realPath)
-    const existance = await this.fileExists(realPath)
+    const existance = await this.fileExists(path)
     
     if(!existance){
-      debug('creating dir place holder', realPath)
+      debug('creating dir', realPath)
+      
+      const parentPath = path.split('/').slice(0, -1).join('/')
+      
+      if(this.storagePath(parentPath) != realPath){
+        debug('parent', parentPath)
+        await this.touchDir(parentPath)
+      }
+      
       await this.sftpFunc.mkdir(realPath)
     }
     

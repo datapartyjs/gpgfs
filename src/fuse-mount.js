@@ -47,6 +47,7 @@ class FuseMount {
 
   async addBucket(bucket){
     debug('addBucket', bucket.id, bucket.name)
+    await bucket.open()
     this.buckets[bucket.name] = bucket
   }
 
@@ -222,6 +223,11 @@ class FuseMount {
       
       if(!file.lastchange || !file.metadata){
         await file.open()
+        
+        await Promise.all([
+          await file.getMetadata(),
+          await file.getLastchange()
+        ])
       }
 
       await file.read()
