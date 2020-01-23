@@ -2,7 +2,7 @@ const gpgfs = require('../src/index')
 
 
 async function main(){
-  const securefs = new gpgfs({keychan: '/home/alanm/.gnupg'})
+  const securefs = new gpgfs()
 
   await securefs.open()
 
