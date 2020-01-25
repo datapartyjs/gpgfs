@@ -8,11 +8,14 @@ const debug = require('debug')('gpgfs.fs-storage')
 
 const IStorage = require('../interface-storage')
 
+/**
+ * Local file storage backend
+ * @class
+ * @implements IStorage
+ */
 class FsStorage extends IStorage {
 
   /**
-   * Local file storage backend
-   * @class
    * @constructor
    * @param {Object} options
    * @param {string} options.path  Path to a `.gpgfs` directory

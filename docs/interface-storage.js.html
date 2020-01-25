@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>Home - Documentation</title>
+    <title>interface-storage.js - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -32,104 +32,88 @@
 
 <div id="main">
     
+    <h1 class="page-title">interface-storage.js</h1>
+    
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const debug = require('debug')('gpgfs.interface-storage')
 
 
-    <section class="package">
-        <h3>gpgfs 0.5.1</h3>		
-    </section>
+/**
+   * Storage interface
+   * @interface
+   */
+class IStorage {
 
-
-
-
-
-
-
-
-
+  /*
+   * @constructor
+   * @param {Object} options
+   * @param {boolean} options.readOnly          Storage open mode
+   */
+  constructor({readOnly}){
+    this.enabled = true
+    this.mode = (readOnly == false) ? IStorage.MODE_WRITE : IStorage.MODE_READ
     
-
-
-
-    <section class="readme">
-        <article><h1>gpgfs</h1>
-<p>gpgfs is an encrypted file storage solution utilizing gnupg to implement the gpgfs file system</p>
-<ul>
-<li>Documentation - <a href="https://datapartyjs.github.io/gpgfs/">datapartyjs.github.io/gpgfs/</a></li>
-<li>NPM - <a href="https://www.npmjs.com/package/gpgfs">npmjs.com/package/gpgfs</a></li>
-<li>Code - <a href="https://github.com/datapartyjs/gpgfs">github.com/datapartyjs/gpgfs</a></li>
-<li>Social - <a href="https://twitter.com/datapartyjs">@datapartyjs</a></li>
-</ul>
-<h2>Goals</h2>
-<ul>
-<li>Private by default</li>
-<li>Transport agnostic</li>
-<li>Represent file buckets</li>
-<li>Encrypted metadata</li>
-<li>Granular permissions</li>
-</ul>
-<h2>API Example</h2>
-<pre class="prettyprint source lang-js"><code>const gpgfs = require('gpgfs')
-
-
-async function main(){
-  const securefs = new gpgfs()
-
-  await securefs.open()
-
-  //! Trust user
-  await securefs.keychain.trustCard()
-
-  const bucket = await securefs.bucket('staging')
-
-  if(!bucket.exists()){
-    console.log('creating bucket')
-    await bucket.create()
+    debug('new', this.name, '  mode=', this.mode)
   }
 
-  const file = await bucket.file('directory-1/foo/bar/file-test.txt')
-
-  if(!file.exists()){
-    console.log('creating file', file.id)
-    await file.create()
-
-    await file.save('hello world\n')
+  /** Start storage  @method */
+  async start(){
+    debug('start')
+    this.enabled = true
   }
 
-  const [ content, metadata, lastchange ] = await Promise.all([
-    file.read(),
-    file.getMetadata(),
-    file.getLastchange()
-  ])
+  /** Start stop storage  @method */
+  async stop(){
+    debug('stop')
+    this.enabled = false
+  }
 
-  console.log('metadata', metadata)
-  console.log('lastchange', lastchange)
-  console.log('file-content [', content.toString(), ']')
+  /** Assert if storage intstance is enabled  @method */
+  assertEnabled(){
+    if(this.enabled !== true){
+      throw new Error('storage not enabled')
+    }
+  }
 
+  /** Storage implementation name @method   */
+  get name(){ throw new Error('not implemented') }
+  
+  /** Check file existance @method   */
+  async fileExists(path){ throw new Error('not implemented read') }
+  
+  /**   @method */
+  async readFile(path){ throw new Error('not implemented read') }
+  
+  /**   @method */
+  async writeFile(path, data, options){ throw new Error('not implemented write') }
+  
+  /**   @method */
+  async rmFile(path){ throw new Error('not implemented rmFile') }
+  
+  /**   @method */
+  async checksumFile(path){ throw new Error('not implemented checksum') }
+
+  /**   @method */
+  async readDir(path){ throw new Error('not implemented readdir') }
+  
+  /**   @method */
+  async touchDir(path){ throw new Error('not implemented touchdir') }
+
+  static get MODE_READ(){ return 1 }
+  static get MODE_WRITE(){ return 2 }
 }
+
+module.exports = IStorage
 </code></pre>
-<h2>Filesystem <code>.gpgfs</code></h2>
-<p>Bucket content is stored in the <code>.gpgfs</code> directory, locatable anywhere on a host file system. All files are encrypted as PGP armored output</p>
-<pre class="prettyprint source lang-console"><code>.gpgfs/
-└── buckets/
-    └── bucket-5e193906a536b1515fcd427d/
-        ├── index
-        ├── metadata
-        ├── object-lastchange/
-        │   └── object-5e193908a536b1515fcd427e-lastchange
-        ├── object-meta/
-        │   └── object-5e193908a536b1515fcd427e-meta
-        └── objects/
-            └── object-5e193908a536b1515fcd427e
-</code></pre></article>
+        </article>
     </section>
-
-
 
 
 

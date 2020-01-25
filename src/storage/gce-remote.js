@@ -8,11 +8,15 @@ const debug = require('debug')('gpgfs.gce-storage')
 const CloudStorage = require('@google-cloud/storage').Storage
 const IStorage = require('../interface-storage')
 
+/**
+   * GCE storage backend. Accepts all options from GCE Storage library See [https://googleapis.dev/nodejs/storage/latest/global.html#StorageOptions](`@google-cloud/storage.StorageOptions`)
+   * 
+   * @class
+   * @implements IStorage
+   */
 class GCEStorage extends IStorage {
 
   /**
-   * GCE storage backend. Accepts all options from GCE Storage library See [https://googleapis.dev/nodejs/storage/latest/global.html#StorageOptions](`@google-cloud/storage.StorageOptions`)
-   * @class
    * @constructor
    * @param {Object} options 
    * @param {string} options.bucketName             Name of GCE Storage bucket

@@ -1,4 +1,48 @@
-const Path = require('path')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>storage/sftp-remote.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Bucket.html">Bucket</a><ul class='methods'><li data-type='method'><a href="Bucket.html#create">create</a></li><li data-type='method'><a href="Bucket.html#exists">exists</a></li><li data-type='method'><a href="Bucket.html#file">file</a></li><li data-type='method'><a href="Bucket.html#getIndex">getIndex</a></li><li data-type='method'><a href="Bucket.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="Bucket.html#indexFile">indexFile</a></li><li data-type='method'><a href="Bucket.html#open">open</a></li></ul></li><li><a href="File.html">File</a><ul class='methods'><li data-type='method'><a href="File.html#create">create</a></li><li data-type='method'><a href="File.html#exists">exists</a></li><li data-type='method'><a href="File.html#getLastchange">getLastchange</a></li><li data-type='method'><a href="File.html#getMetadata">getMetadata</a></li><li data-type='method'><a href="File.html#open">open</a></li><li data-type='method'><a href="File.html#read">read</a></li><li data-type='method'><a href="File.html#save">save</a></li></ul></li><li><a href="FsStorage.html">FsStorage</a><ul class='methods'><li data-type='method'><a href="FsStorage.html#fileExists">fileExists</a></li><li data-type='method'><a href="FsStorage.html#readDir">readDir</a></li><li data-type='method'><a href="FsStorage.html#readFile">readFile</a></li><li data-type='method'><a href="FsStorage.html#rmFile">rmFile</a></li><li data-type='method'><a href="FsStorage.html#start">start</a></li><li data-type='method'><a href="FsStorage.html#stop">stop</a></li><li data-type='method'><a href="FsStorage.html#touchDir">touchDir</a></li><li data-type='method'><a href="FsStorage.html#writeFile">writeFile</a></li></ul></li><li><a href="GCEStorage.html">GCEStorage</a><ul class='methods'><li data-type='method'><a href="GCEStorage.html#fileExists">fileExists</a></li><li data-type='method'><a href="GCEStorage.html#readDir">readDir</a></li><li data-type='method'><a href="GCEStorage.html#readFile">readFile</a></li><li data-type='method'><a href="GCEStorage.html#rmFile">rmFile</a></li><li data-type='method'><a href="GCEStorage.html#start">start</a></li><li data-type='method'><a href="GCEStorage.html#stop">stop</a></li><li data-type='method'><a href="GCEStorage.html#touchDir">touchDir</a></li><li data-type='method'><a href="GCEStorage.html#writeFile">writeFile</a></li></ul></li><li><a href="Gpgfs.html">Gpgfs</a><ul class='methods'><li data-type='method'><a href="Gpgfs.html#bucket">bucket</a></li><li data-type='method'><a href="Gpgfs.html#cacheWhoami">cacheWhoami</a></li><li data-type='method'><a href="Gpgfs.html#getBuckets">getBuckets</a></li><li data-type='method'><a href="Gpgfs.html#open">open</a></li></ul></li><li><a href="IStorage.html">IStorage</a><ul class='methods'><li data-type='method'><a href="IStorage.html#assertEnabled">assertEnabled</a></li><li data-type='method'><a href="IStorage.html#checksumFile">checksumFile</a></li><li data-type='method'><a href="IStorage.html#fileExists">fileExists</a></li><li data-type='method'><a href="IStorage.html#readDir">readDir</a></li><li data-type='method'><a href="IStorage.html#readFile">readFile</a></li><li data-type='method'><a href="IStorage.html#rmFile">rmFile</a></li><li data-type='method'><a href="IStorage.html#start">start</a></li><li data-type='method'><a href="IStorage.html#stop">stop</a></li><li data-type='method'><a href="IStorage.html#touchDir">touchDir</a></li><li data-type='method'><a href="IStorage.html#writeFile">writeFile</a></li></ul></li><li><a href="SFTPStorage.html">SFTPStorage</a><ul class='methods'><li data-type='method'><a href="SFTPStorage.html#fileExists">fileExists</a></li><li data-type='method'><a href="SFTPStorage.html#readDir">readDir</a></li><li data-type='method'><a href="SFTPStorage.html#readFile">readFile</a></li><li data-type='method'><a href="SFTPStorage.html#rmFile">rmFile</a></li><li data-type='method'><a href="SFTPStorage.html#start">start</a></li><li data-type='method'><a href="SFTPStorage.html#stop">stop</a></li><li data-type='method'><a href="SFTPStorage.html#touchDir">touchDir</a></li><li data-type='method'><a href="SFTPStorage.html#writeFile">writeFile</a></li></ul></li></ul><h3>Global</h3><ul><li><a href="global.html#S_IFMT">S_IFMT</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">storage/sftp-remote.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Path = require('path')
 const {promisfy, waitFor} = require('promisfy')
 const sanitize = require('sanitize-filename')
 const debug = require('debug')('gpgfs.sftp-storage')
@@ -269,3 +313,28 @@ class SFTPStorage extends IStorage {
 }
 
 module.exports = SFTPStorage
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.3</a> on Fri Jan 24 2020 16:43:48 GMT-0800 (Pacific Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>
