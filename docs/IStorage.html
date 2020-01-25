@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>Gpgfs - Documentation</title>
+    <title>IStorage - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -32,7 +32,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">Gpgfs</h1>
+    <h1 class="page-title">IStorage</h1>
     
 
     
@@ -45,8 +45,10 @@
 <header>
     
         <h2>
-        Gpgfs
+        IStorage
         </h2>
+        
+            <div class="class-description"><p>Storage interface</p></div>
         
     
 </header>
@@ -58,8 +60,10 @@
             
 
     
+    <h2>Constructor</h2>
+    
 
-    <h4 class="name" id="Gpgfs"><span class="type-signature"></span>new Gpgfs<span class="signature">(options)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="IStorage"><span class="type-signature"></span>new IStorage<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -71,7 +75,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line28">line 28</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line15">line 15</a>
     </li></ul></dd>
     
 
@@ -110,9 +114,6 @@
 
 
 
-<div class="description">
-    <p>A gpgfs file-system</p>
-</div>
 
 
 
@@ -121,128 +122,6 @@
 
 
 
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>options</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">
-                <h6>Properties</h6>
-                
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>path</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Path to a <code>gpgfs</code> file directory</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>keychain</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">GpgPromised.KeyChain</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>See <a href="https://datapartyjs.github.io/gpg-promised/KeyChain.html"><code>GpgPromised.KeyChain</code></a></p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-            </td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -283,7 +162,7 @@
 
         
             
-<h4 class="name" id=".FuseMount"><span class="type-signature">(static) </span>FuseMount<span class="type-signature"> :FuseMount</span></h4>
+<h4 class="name" id="name"><span class="type-signature"></span>name<span class="type-signature"></span></h4>
 
 
 
@@ -294,7 +173,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line63">line 63</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line42">line 42</a>
     </li></ul></dd>
     
 
@@ -333,155 +212,11 @@
 
 
 
+<div class="description">
+    <p>Storage implementation name @method</p>
+</div>
 
 
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">FuseMount</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id=".GPG"><span class="type-signature">(static) </span>GPG<span class="type-signature"> :GpgPromised</span></h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line242">line 242</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">GpgPromised</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="whoami"><span class="type-signature"></span>whoami<span class="type-signature"> :string</span></h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line39">line 39</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">string</span>
-
-
-        </li>
-    </ul>
 
 
 
@@ -499,7 +234,7 @@
 
     
 
-    <h4 class="name" id="bucket"><span class="type-signature">(async) </span>bucket<span class="signature">(name)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Bucket.html">Bucket</a>>}</span></h4>
+    <h4 class="name" id="assertEnabled"><span class="type-signature"></span>assertEnabled<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -511,7 +246,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line113">line 113</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line35">line 35</a>
     </li></ul></dd>
     
 
@@ -551,7 +286,7 @@
 
 
 <div class="description">
-    <p>Load bucket</p>
+    <p>Assert if storage intstance is enabled  @method</p>
 </div>
 
 
@@ -564,53 +299,6 @@
 
 
 
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>name</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Name of bucket to load</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -625,30 +313,6 @@
 
 
 
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Matching bucket</p>
-</div>
-
-
-
-<dl class="param-type">
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;<a href="Bucket.html">Bucket</a>></span>
-
-
-    </dd>
-</dl>
-
-    
 
 
 
@@ -657,7 +321,7 @@
 
     
 
-    <h4 class="name" id="cacheWhoami"><span class="type-signature">(async) </span>cacheWhoami<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="checksumFile"><span class="type-signature">(async) </span>checksumFile<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -669,7 +333,90 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line46">line 46</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line57">line 57</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="fileExists"><span class="type-signature">(async) </span>fileExists<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line45">line 45</a>
     </li></ul></dd>
     
 
@@ -709,7 +456,7 @@
 
 
 <div class="description">
-    <p>Load keychain owner into cache</p>
+    <p>Check file existance @method</p>
 </div>
 
 
@@ -744,7 +491,7 @@
 
     
 
-    <h4 class="name" id="getBuckets"><span class="type-signature">(async) </span>getBuckets<span class="signature">(options)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Bucket.html">Bucket</a>>}</span></h4>
+    <h4 class="name" id="readDir"><span class="type-signature">(async) </span>readDir<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -756,7 +503,256 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line82">line 82</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line60">line 60</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="readFile"><span class="type-signature">(async) </span>readFile<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line48">line 48</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="rmFile"><span class="type-signature">(async) </span>rmFile<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line54">line 54</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="start"><span class="type-signature">(async) </span>start<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line23">line 23</a>
     </li></ul></dd>
     
 
@@ -796,7 +792,7 @@
 
 
 <div class="description">
-    <p>Load all matching bucket metadata</p>
+    <p>Start storage  @method</p>
 </div>
 
 
@@ -809,102 +805,6 @@
 
 
 
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>options</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">
-                <h6>Properties</h6>
-                
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>name</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Name filter</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-            </td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -919,30 +819,6 @@
 
 
 
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Array of Bucket</p>
-</div>
-
-
-
-<dl class="param-type">
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;<a href="Bucket.html">Bucket</a>></span>
-
-
-    </dd>
-</dl>
-
-    
 
 
 
@@ -951,7 +827,7 @@
 
     
 
-    <h4 class="name" id="open"><span class="type-signature">(async) </span>open<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="stop"><span class="type-signature">(async) </span>stop<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -963,7 +839,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="gpgfs.js.html">gpgfs.js</a>, <a href="gpgfs.js.html#line55">line 55</a>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line29">line 29</a>
     </li></ul></dd>
     
 
@@ -1003,8 +879,174 @@
 
 
 <div class="description">
-    <p>Open file system for read &amp; write operations</p>
+    <p>Start stop storage  @method</p>
 </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="touchDir"><span class="type-signature">(async) </span>touchDir<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line63">line 63</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="writeFile"><span class="type-signature">(async) </span>writeFile<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="interface-storage.js.html">interface-storage.js</a>, <a href="interface-storage.js.html#line51">line 51</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
 
 
 

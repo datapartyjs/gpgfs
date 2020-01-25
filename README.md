@@ -36,25 +36,25 @@ async function main(){
     await bucket.create()
   }
 
-  console.log(bucket)
-
   const file = await bucket.file('directory-1/foo/bar/file-test.txt')
 
   if(!file.exists()){
     console.log('creating file', file.id)
     await file.create()
 
-    file.content = 'hello world\n'
-    await file.save()
+    await file.save('hello world\n')
   }
 
-  const content = await file.read()
-  const metadata = await file.getMetadata()
-  const lastchange = await file.getLastchange()
+  const [ content, metadata, lastchange ] = await Promise.all([
+    file.read(),
+    file.getMetadata(),
+    file.getLastchange()
+  ])
 
-  console.log('file-content [', content, ']')
   console.log('metadata', metadata)
   console.log('lastchange', lastchange)
+  console.log('file-content [', content.toString(), ']')
+
 }
 ```
 
