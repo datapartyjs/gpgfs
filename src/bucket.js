@@ -242,15 +242,6 @@ class Bucket {
     const nowTime = (new Date()).toISOString()
     let newMetadata = Object.assign({lastchanged: nowTime}, this.metadata, value)
 
-    await this.root.writeFile( this.path + '/metadata',
-      newMetadata,
-      {
-        model: 'bucket_meta',
-        encrypt: true,
-        to: await this.getReciepents()
-      }
-    )
-
     if(!this.metadata){
       debug('creating metadata')
       this.metadata = newMetadata
@@ -259,6 +250,15 @@ class Bucket {
       debug('replacing metadata')
       this.metadata = newMetadata
     }
+
+    await this.root.writeFile( this.path + '/metadata',
+      this.metadata,
+      {
+        model: 'bucket_meta',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
   }
 
 
