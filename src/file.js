@@ -164,7 +164,9 @@ class File {
     const contentReaders = Utils.uniqueArray(
       [ this.metadata.owner ].concat(
         this.metadata.readers,
-        this.metadata.writers
+        this.metadata.writers,
+        Hoek.reach(this, 'bucket.metadata.readers', {default: []}),
+        Hoek.reach(this, 'bucket.metadata.writers', {default: []})
       )
     )
 

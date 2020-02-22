@@ -459,6 +459,15 @@ class Bucket {
       debug('replacing metadata')
       this.metadata = newMetadata
     }
+
+    await this.root.writeFile( this.path + '/metadata',
+      this.metadata,
+      {
+        model: 'bucket_meta',
+        encrypt: true,
+        to: await this.getReciepents()
+      }
+    )
   }
 
 

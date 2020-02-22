@@ -19,6 +19,18 @@ exports.touchDir = async (path) => {
   })
 }
 
+/*
 exports.uniqueArray = (arr)=>{
   return arr.filter((v, i, a) => a.indexOf(v) === i)
+}
+*/
+
+exports.uniqueArray = (arr)=>{
+  return arr.filter((v, i, a) => {
+    if( v !== undefined && a.indexOf(v) === i){
+      return true
+    }
+
+    return false
+  })
 }
