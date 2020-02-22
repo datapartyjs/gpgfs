@@ -409,6 +409,18 @@ class Bucket {
       const [keyId] = await keychain.importKey(key)
 
       await keychain.trustKey(keyId, '5')
+
+      const lookups = (this.metadata.writers||[]).map(async writer => {
+        debug('\twriter\t',writer)
+
+        const k = await keychain.lookupKey(writer)
+        debug(k)
+        await keychain.recvKey( k.keyid )
+        await keychain.signKey(writer)
+      })
+
+      await Promise.all(lookups)
+
       return await keychain.whoami()
     }
 

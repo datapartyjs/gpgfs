@@ -188,6 +188,7 @@ class Gpgfs {
         content = await this.keychain.decrypt(content, options)
       }
       else{
+        debug('\tusing alternate keychain')
         content = await keychain.decrypt(content, options)
       }
 

@@ -143,7 +143,7 @@ class File {
    */
   async read(){
     //load & decrypt
-    this.content = await this.bucket.root.readFile( this.path, true)
+    this.content = await this.bucket.root.readFile( this.path, true, null, this.bucket.readKeychain, {from: this.bucket.metadata.writers})
     return this.content
   }
 
@@ -195,7 +195,7 @@ class File {
    */
   async getMetadata(){
     if(this.metadata){return}
-    this.metadata = await this.bucket.root.readFile( this.metadataPath, true, 'object_meta')
+    this.metadata = await this.bucket.root.readFile( this.metadataPath, true, 'object_meta', this.bucket.metaKeychain, {from: this.bucket.metadata.writers})
     return this.metadata
   }
 
@@ -247,7 +247,7 @@ class File {
    */
   async getLastchange(){
     if(this.lastchange){return}
-    this.lastchange = await this.bucket.root.readFile( this.lastchangePath, true, 'object_lastchange')
+    this.lastchange = await this.bucket.root.readFile( this.lastchangePath, true, 'object_lastchange', this.bucket.metaKeychain, {from: this.bucket.metadata.writers})
     return this.lastchange  
   }
   
