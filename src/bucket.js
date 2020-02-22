@@ -109,6 +109,7 @@ class Bucket {
    */
   async create(){
     debug('create -', this.id)
+    await this.root.cacheWhoami()
 
     //if(this.exists()){ throw new Error('bucket exists') }
     if(await this.root.fileExists( this.readKeyPath )){ throw new Error('bucket read key exists') }
@@ -390,7 +391,7 @@ class Bucket {
     debug('loading bucket keys')
     await this.initKeys()
 
-    let fromList = [ this.metadata.owner ]
+    let fromList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
 
     const loadSecretKey = async (keychain, path) =>{
       const key = await this.root.readFile(path, true, null, null, {
