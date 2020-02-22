@@ -1,7 +1,9 @@
 const Path = require('path')
 const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
+const GpgPromised = require('gpg-promised')
 const debug = require('debug')('gpgfs.Bucket')
+
 
 const Utils = require('./utils')
 const GpgFsFile = require('./file')
@@ -16,16 +18,31 @@ class Bucket {
     this.name = name
     this.root = root
 
+    this.opened = false
     this.index = null
     this.metadata = null
     this._fileCache = {}
     debug('new -', name || id)
+
+    this.readKeychain = null
+    this.metaKeychain = null
+
+    this.keyFingerprints = {
+      read: null,
+      meta: null
+    }
+
+    this.keyPublics = {
+      read: null,
+      meta: null
+    }
   }
 
   /**
    * Open and read metadata 
    * @method */
   async open(){
+    if(this.opened){ return }
     this.index = null
     this.metadata = null
     this._fileCache = {}
@@ -34,8 +51,14 @@ class Bucket {
       this.getIndex(),
       this.getMetadata()
     ])
+
+    /*this.readKeychain = null
+    this.metaKeychain = null*/
+
+    await this.loadKeys()
     
     this.name = this.metadata.bucketName
+    this.opened = true
     debug('loaded ', this.name)
   }
 
@@ -88,6 +111,8 @@ class Bucket {
     debug('create -', this.id)
 
     //if(this.exists()){ throw new Error('bucket exists') }
+    if(await this.root.fileExists( this.readKeyPath )){ throw new Error('bucket read key exists') }
+    if(await this.root.fileExists( this.metaReadKeyPath )){ throw new Error('bucket meta read key exists') }
     if(await this.root.fileExists( this.indexPath )){ throw new Error('bucket index exists') }
     if(await this.root.fileExists( this.metadataPath )){ throw new Error('bucket metadata exists') }
 
@@ -100,23 +125,48 @@ class Bucket {
 
     const whoami = (await this.root.keychain.whoami())[0]
 
+    //create keys
+    debug('create bucket keys')
+    await this.createKeys()
+
+    //import and trust in root keychain
+    debug('import bucket keys', this.keyFingerprints)
+    const [[importedReadId], [importedMetaId]] = await Promise.all([
+      this.root.keychain.importKey(this.keyPublics.read),
+      this.root.keychain.importKey(this.keyPublics.meta)
+    ])
+
+    debug('trust keys', importedReadId, importedMetaId)
+    await Promise.all([
+      this.root.keychain.trustKey( importedReadId, '3' ),
+      this.root.keychain.trustKey( importedMetaId, '3' )
+    ])
+
     await this.setMetadata({
       owner: whoami,
       bucketId: {
         id: this.id.toHexString(),
         type: 'bucket_meta'
       },
+      bucketKeys: {
+        publics: this.keyPublics,
+        fingerprints: this.keyFingerprints
+      },
       created: nowTime,
       bucketName: this.name,
       cleartext: false,
-      meta: [whoami],
-      readers: [whoami],
+      meta: [whoami, this.keyFingerprints.meta, this.keyFingerprints.read],
+      readers: [whoami, this.keyFingerprints.read],
       writers: [whoami]
     })
 
     await this.setIndex({
       created: nowTime
     })
+
+
+    this.readKeychain = null
+    this.metaKeychain = null
   }
 
   /** 
@@ -181,6 +231,8 @@ class Bucket {
   get path(){ return '/buckets/bucket-'+this.id.toHexString() }
   get indexPath(){return this.path+'/index' }
   get metadataPath(){return this.path+'/metadata' }
+  get readKeyPath(){return this.path+'/read-key' }
+  get metaReadKeyPath(){return this.path+'/meta-read-key' }
 
   async getReciepents(){
     await this.root.cacheWhoami()
@@ -205,6 +257,45 @@ class Bucket {
     return Utils.uniqueArray(toList)
   }
 
+  async getMetaKeyReciepents(){
+    let toList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
+
+    if(this.metadata){
+
+      if(this.metadata.meta && this.metadata.meta.length > 0){
+        toList = toList.concat(this.metadata.meta)
+      }
+
+      if(this.metadata.readers && this.metadata.readers.length > 0){
+        toList = toList.concat(this.metadata.readers)
+      }
+
+      if(this.metadata.writers && this.metadata.writers.length > 0){
+        toList = toList.concat(this.metadata.writers)
+      }
+    }
+
+    return Utils.uniqueArray(toList)
+  }
+
+
+  async getReadKeyReciepents(){
+    let toList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
+
+    if(this.metadata){
+
+      if(this.metadata.readers && this.metadata.readers.length > 0){
+        toList = toList.concat(this.metadata.readers)
+      }
+
+      if(this.metadata.writers && this.metadata.writers.length > 0){
+        toList = toList.concat(this.metadata.writers)
+      }
+    }
+
+    return Utils.uniqueArray(toList)
+  }
+
   async getObjectIds(){
     const objectPaths = (await this.readDir('/objects'))
       .map(item=>{
@@ -222,10 +313,143 @@ class Bucket {
    */
   async getIndex(){
     if(this.index !== null){ return this.index }
-    const indexPath = this.path + '/index'
-    this.index = await this.root.readFile( indexPath, true, 'bucket_index')
+    this.index = await this.root.readFile( this.indexPath, true, 'bucket_index', null, {from: Hoek.reach(this, 'metadata.writers')})
     return this.index   
   }
+
+  
+
+  async initKeys(){
+    if(this.readKeychain !== null){ throw 'refuse to overwrite existing read key' }
+    if(this.metaKeychain !== null){ throw 'refuse to overwrite existing metadata key' }
+
+    this.readKeychain = new GpgPromised.KeyChain()
+    this.metaKeychain = new GpgPromised.KeyChain()
+
+    await Promise.all([
+      await this.readKeychain.open(),
+      await this.metaKeychain.open()
+    ])
+  }
+
+  async createKeys(){
+    await this.initKeys()
+
+    await Promise.all([
+      this.readKeychain.generateKey({
+        //expire: '2y',
+        unattend: true,
+        name: `readers ${this.id}`,
+        email: `bucket-readers-${this.id}@gpgfs.xyz`
+      }),
+      this.metaKeychain.generateKey({
+        //expire: '2y',
+        unattend: true,
+        name: `metareaders ${this.id}`,
+        email: `bucket-metareaders-${this.id}@gpgfs.xyz`
+      })
+    ])
+
+    this.keyFingerprints.read = (await this.readKeychain.listSecretKeys())[0].fpr.user_id
+    this.keyFingerprints.meta = (await this.metaKeychain.listSecretKeys())[0].fpr.user_id
+
+    this.keyPublics.read = await this.readKeychain.exportPublicKey(`bucket-readers-${this.id}@gpgfs.xyz`)
+    this.keyPublics.meta = await this.metaKeychain.exportPublicKey(`bucket-metareaders-${this.id}@gpgfs.xyz`)
+
+    await this.saveKeys()
+  }
+
+  async saveKeys(){
+    //! store read & metadata keys
+    debug('saving bucket keys')
+    const saveSecretText = async (keychain, path, to) =>{
+      const who = await keychain.whoami()
+      const key = await keychain.exportSecretKey(who[0])
+      await this.root.writeFile(
+        path,
+        key,
+        { to, encrypt: true }
+      )
+    }
+
+    await Promise.all([
+      saveSecretText(
+        this.readKeychain,
+        this.readKeyPath,
+        await this.getReadKeyReciepents()
+      ),
+      saveSecretText(
+        this.metaKeychain,
+        this.metaReadKeyPath,
+        await this.getMetaKeyReciepents()
+      )
+    ])
+  }
+
+  async loadKeys(){
+    debug('loading bucket keys')
+    await this.initKeys()
+
+    let fromList = [ this.metadata.owner ]
+
+    const loadSecretKey = async (keychain, path) =>{
+      const key = await this.root.readFile(path, true, null, null, {
+        trust: 'direct',
+        from: fromList
+      })
+
+      const [keyId] = await keychain.importKey(key)
+
+      await keychain.trustKey(keyId, '5')
+
+      const lookups = (this.metadata.writers||[]).map(async writer => {
+        debug('\twriter\t',writer)
+
+        const k = await keychain.lookupKey(writer)
+        debug(k)
+        await keychain.recvKey( k.keyid )
+        await keychain.signKey(writer)
+      })
+
+      await Promise.all(lookups)
+
+      return await keychain.whoami()
+    }
+
+    const whose = await Promise.all([
+      loadSecretKey( this.readKeychain, this.readKeyPath ),
+      loadSecretKey( this.metaKeychain, this.metaReadKeyPath )
+    ])
+
+    this.keyFingerprints.read = (await this.readKeychain.listSecretKeys())[0].fpr.user_id
+    this.keyPublics.read = await this.readKeychain.exportPublicKey(whose[0][0])
+
+
+    this.keyFingerprints.meta = (await this.metaKeychain.listSecretKeys())[0].fpr.user_id
+    this.keyPublics.meta = await this.metaKeychain.exportPublicKey(whose[0][1])
+
+    // Assert loaded key fingerprints and publics match listed in project json
+    // import & trust read keys if not already in key ring
+
+    //import and trust in root keychain
+    debug('import bucket keys', this.keyFingerprints)
+    const [[importedReadId], [importedMetaId]] = await Promise.all([
+      this.root.keychain.importKey(this.keyPublics.read),
+      this.root.keychain.importKey(this.keyPublics.meta)
+    ])
+
+    debug('trust keys', importedReadId, importedMetaId)
+    await Promise.all([
+      this.root.keychain.trustKey( importedReadId, '3' ),
+      this.root.keychain.trustKey( importedMetaId, '3' )
+    ])
+  
+  }
+
+  async unloadKeys(){
+
+  }
+
 
   /**
    * Bucket metadata 
@@ -233,14 +457,23 @@ class Bucket {
    * @returns {gpgfs_model.bucket_meta} See [`gpgfs_model.bucket_meta`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/bucket_meta.js}
    */
   async getMetadata(){
-    const metadataPath = this.path + '/metadata'
-    this.metadata = await this.root.readFile( metadataPath, true, 'bucket_meta')
+    this.metadata = await this.root.readFile( this.metadataPath, true, 'bucket_meta', null, {from: Hoek.reach(this, 'metadata.owner')})
     return this.metadata
   }
 
   async setMetadata(value){
     const nowTime = (new Date()).toISOString()
     let newMetadata = Object.assign({lastchanged: nowTime}, this.metadata, value)
+
+    await this.root.writeFile( this.metadataPath,
+      newMetadata,
+      {
+        model: 'bucket_meta',
+        encrypt: true,
+        trust: 'direct',
+        to: await this.getReciepents()
+      }
+    )
 
     if(!this.metadata){
       debug('creating metadata')
@@ -251,14 +484,6 @@ class Bucket {
       this.metadata = newMetadata
     }
 
-    await this.root.writeFile( this.path + '/metadata',
-      this.metadata,
-      {
-        model: 'bucket_meta',
-        encrypt: true,
-        to: await this.getReciepents()
-      }
-    )
   }
 
 
@@ -274,11 +499,12 @@ class Bucket {
     }, value)
 
 
-    await this.root.writeFile( this.path + '/index',
+    await this.root.writeFile( this.indexPath,
       newIndex,
       {
         model: 'bucket_index',
         encrypt: true,
+        trust: 'direct',
         to: await this.getReciepents()
       }
     )
