@@ -321,7 +321,7 @@ class Bucket {
    */
   async getIndex(){
     if(this.index !== null){ return this.index }
-    this.index = await this.root.readFile( this.indexPath, true, 'bucket_index')
+    this.index = await this.root.readFile( this.indexPath, true, 'bucket_index', null, {from: Hoek.reach(this, 'metadata.writers')})
     return this.index   
   }
 
@@ -465,7 +465,7 @@ class Bucket {
    * @returns {gpgfs_model.bucket_meta} See [`gpgfs_model.bucket_meta`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/bucket_meta.js}
    */
   async getMetadata(){
-    this.metadata = await this.root.readFile( this.metadataPath, true, 'bucket_meta')
+    this.metadata = await this.root.readFile( this.metadataPath, true, 'bucket_meta', null, {from: Hoek.reach(this, 'metadata.owner')})
     return this.metadata
   }
 
