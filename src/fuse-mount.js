@@ -47,7 +47,6 @@ class FuseMount {
 
   async addBucket(bucket){
     debug('addBucket', bucket.id, bucket.name)
-    await bucket.open()
     this.buckets[bucket.name] = bucket
   }
 

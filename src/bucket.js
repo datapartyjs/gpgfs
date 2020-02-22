@@ -18,6 +18,7 @@ class Bucket {
     this.name = name
     this.root = root
 
+    this.opened = false
     this.index = null
     this.metadata = null
     this._fileCache = {}
@@ -41,6 +42,7 @@ class Bucket {
    * Open and read metadata 
    * @method */
   async open(){
+    if(this.opened){ return }
     this.index = null
     this.metadata = null
     this._fileCache = {}
@@ -50,12 +52,13 @@ class Bucket {
       this.getMetadata()
     ])
 
-    this.readKeychain = null
-    this.metaKeychain = null
+    /*this.readKeychain = null
+    this.metaKeychain = null*/
 
     await this.loadKeys()
     
     this.name = this.metadata.bucketName
+    this.opened = true
     debug('loaded ', this.name)
   }
 
@@ -141,12 +144,9 @@ class Bucket {
 
     /*debug('sign keys')
     await Promise.all([
-      this.root.keychain.signKey( importedReadId, whoami ),
-      this.root.keychain.signKey( importedMetaId, whoami )
+      this.root.keychain.signKey( importedReadId),
+      this.root.keychain.signKey( importedMetaId )
     ])*/
-
-    this.readKeychain = null
-    this.metaKeychain = null
 
     await this.setMetadata({
       owner: whoami,
@@ -169,6 +169,10 @@ class Bucket {
     await this.setIndex({
       created: nowTime
     })
+
+
+    this.readKeychain = null
+    this.metaKeychain = null
   }
 
   /** 
@@ -419,6 +423,22 @@ class Bucket {
 
     this.keyFingerprints.meta = (await this.metaKeychain.listSecretKeys())[0].fpr.user_id
     this.keyPublics.meta = await this.metaKeychain.exportPublicKey(whose[0][1])
+
+    // Assert loaded key fingerprints and publics match listed in project json
+    // import & trust read keys if not already in key ring
+
+    //import and trust in root keychain
+    debug('import bucket keys', this.keyFingerprints)
+    const [[importedReadId], [importedMetaId]] = await Promise.all([
+      this.root.keychain.importKey(this.keyPublics.read),
+      this.root.keychain.importKey(this.keyPublics.meta)
+    ])
+
+    debug('trust keys', importedReadId, importedMetaId)
+    await Promise.all([
+      this.root.keychain.trustKey( importedReadId, '3' ),
+      this.root.keychain.trustKey( importedMetaId, '3' )
+    ])
   
   }
 
@@ -460,14 +480,6 @@ class Bucket {
       this.metadata = newMetadata
     }
 
-    await this.root.writeFile( this.path + '/metadata',
-      this.metadata,
-      {
-        model: 'bucket_meta',
-        encrypt: true,
-        to: await this.getReciepents()
-      }
-    )
   }
 
 
