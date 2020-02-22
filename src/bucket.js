@@ -258,7 +258,6 @@ class Bucket {
   }
 
   async getMetaKeyReciepents(){
-    await this.root.cacheWhoami()
     let toList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
 
     if(this.metadata){
