@@ -39,6 +39,7 @@ class File {
     await this.bucket.root.rmFile(this.metadataPath)
     await this.bucket.root.rmFile(this.lastchangePath)
 
+    await this.release()
     delete this
   }
 
@@ -175,6 +176,7 @@ class File {
       this.content,
       {
         encrypt: true,
+        trust: 'direct',
         to: contentReaders
       }
     )
@@ -221,6 +223,7 @@ class File {
       {
         model: 'object_meta',
         encrypt: true,
+        trust: 'direct',
         to: await this.getReciepents()
       }
     )
@@ -277,6 +280,7 @@ class File {
       {
         model: 'object_lastchange',
         encrypt: true,
+        trust: 'direct',
         to: await this.getReciepents()
       }
     )

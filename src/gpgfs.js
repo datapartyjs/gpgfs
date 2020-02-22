@@ -168,7 +168,7 @@ class Gpgfs {
 
         
         await this.cacheWhoami()
-        content = await this.keychain.encrypt(content, options.to, this.whoami)
+        content = await this.keychain.encrypt(content, options.to, this.whoami, options.trust)
       }
     }
     
@@ -177,13 +177,19 @@ class Gpgfs {
     return await this.storage.writeFile(path, content, {mode: 0o600})
   }
 
-  async readFile(path, decrypt=false, model){
+  async readFile(path, decrypt=false, model=null, keychain=null, options){
 
+    debug('readFile -', path)
     let content = await this.storage.readFile(path)
 
     if(decrypt && content && content.length > 0){
       debug('readFile - decrypt')
-      content = await this.keychain.decrypt(content)
+      if(!keychain){
+        content = await this.keychain.decrypt(content, options)
+      }
+      else{
+        content = await keychain.decrypt(content, options)
+      }
 
       /** @todo  verify signatures - https://github.com/datapartyjs/gpg-promised/issues/9  */
     }
