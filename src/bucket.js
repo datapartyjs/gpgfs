@@ -142,12 +142,6 @@ class Bucket {
       this.root.keychain.trustKey( importedMetaId, '3' )
     ])
 
-    /*debug('sign keys')
-    await Promise.all([
-      this.root.keychain.signKey( importedReadId),
-      this.root.keychain.signKey( importedMetaId )
-    ])*/
-
     await this.setMetadata({
       owner: whoami,
       bucketId: {
@@ -265,7 +259,7 @@ class Bucket {
 
   async getMetaKeyReciepents(){
     await this.root.cacheWhoami()
-    let toList = [ this.root.whoami ]
+    let toList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
 
     if(this.metadata){
 
@@ -287,8 +281,7 @@ class Bucket {
 
 
   async getReadKeyReciepents(){
-    await this.root.cacheWhoami()
-    let toList = [ this.root.whoami ]
+    let toList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
 
     if(this.metadata){
 
