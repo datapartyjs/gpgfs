@@ -2,11 +2,13 @@ const Path = require('path')
 const Hoek = require('@hapi/hoek')
 const ObjectId = require('bson-objectid')
 const GpgPromised = require('gpg-promised')
-const debug = require('debug')('gpgfs.Bucket')
+const Debug = require('debug')
+const debug = Debug('gpgfs.Bucket')
 
 
 const Utils = require('./utils')
 const GpgFsFile = require('./file')
+const IStorage = require('./interface-storage')
 
 /** Class representing gpgfs Bucket */
 class Bucket {
@@ -307,16 +309,7 @@ class Bucket {
     return objectPaths
   }
 
-  /**
-   * Bucket index 
-   * @method 
-   * @returns {gpgfs_model.bucket_index} See [`gpgfs_model.bucket_index`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/bucket_index.js}
-   */
-  async getIndex(){
-    if(this.index !== null){ return this.index }
-    this.index = await this.root.readFile( this.indexPath, true, 'bucket_index', null, {from: Hoek.reach(this, 'metadata.writers')})
-    return this.index   
-  }
+
 
   
 
@@ -448,7 +441,8 @@ class Bucket {
   }
 
   async unloadKeys(){
-
+    //! @todo
+    throw 'not implemented'
   }
 
 
@@ -487,6 +481,16 @@ class Bucket {
 
   }
 
+    /**
+   * Bucket index 
+   * @method 
+   * @returns {gpgfs_model.bucket_index} See [`gpgfs_model.bucket_index`]{@link https://github.com/datapartyjs/gpgfs-model/blob/master/src/types/bucket_index.js}
+   */
+  async getIndex(){
+    if(this.index !== null){ return this.index }
+    this.index = await this.root.readFile( this.indexPath, true, 'bucket_index', null, {from: Hoek.reach(this, 'metadata.writers')})
+    return this.index   
+  }
 
   async setIndex(value){
     const nowTime = (new Date()).toISOString()
@@ -496,7 +500,8 @@ class Bucket {
         id: this.id.toHexString(),
         type: 'bucket_meta'
       },
-      objects: []
+      objects: [],
+      dirs: []
     }, value)
 
 
@@ -518,6 +523,87 @@ class Bucket {
       debug('replacing index')
       this.index = newIndex
     }
+  }
+
+  async mkdir(path){
+    debug('mkdir path -', path)
+    await this.getIndex()
+
+    path = Path.normalize( Path.join('/', path ))
+
+    debug('\t', 'normalize -', path)
+
+    if(this.index.dirs.indexOf(path) < 0){
+      this.index.dirs.push(path)
+      await this.setIndex({...this.index})
+    }
+  }
+
+  async rmdir(path){
+    debug('rmdir path -', path)
+    await this.getIndex()
+
+    path = Path.normalize( Path.join('/', path ))
+
+    debug('\t', 'normalize -', path)
+
+    const idx = this.index.dirs.indexOf(path)
+    if(idx > -1){
+      this.index.dirs.splice(idx, 1)
+      await this.setIndex({...this.index})
+    }
+  }
+
+  readDir(path){
+    // Given a path, determine the objects and dirs local to that path
+
+    debug('readDir ', path)
+
+    const bucketPath = Path.normalize( Path.join('/', path) )
+
+    debug('readDir ', this.name, bucketPath)
+
+    const results = {
+      files: {},
+      dirs: []
+    }
+
+    //! Search objects
+    for(const obj of this.index.objects){
+
+      //debug('check file ', obj.path, ' startsWith(', bucketPath, ')')
+
+      if(obj.path.startsWith(bucketPath)){
+
+        const filePathToks = obj.path.replace(bucketPath, '').split('/')
+        if(filePathToks[0] == ''){ filePathToks.shift() }
+        const localPath = filePathToks[0]
+
+        if(filePathToks.length > 1){
+          //! add intermediate directory to list
+          results.dirs.push( localPath )
+        } else {
+          results.files[ localPath ] = obj
+        }
+
+      }
+    }
+
+    for(let i = 0; i < Hoek.reach(this, 'index.dirs.length', {default: 0}); i++){
+      
+      const dirPath = this.index.dirs[ i ]
+      if(dirPath.startsWith(bucketPath)){
+
+        const filePathToks = dirPath.replace(bucketPath, '').split('/')
+        if(filePathToks[0] == ''){ filePathToks.shift() }
+        const localPath = filePathToks[0]
+        results.dirs.push( localPath )
+      }
+    }
+
+    results.dirs = Utils.uniqueArray( results.dirs )
+
+    return results
   }
 
   /** @method
@@ -553,7 +639,17 @@ class Bucket {
 
     debug('newIndex', newIndex)
 
+    const parents = Utils.parentPaths( newIndex.path )
+    
+    if(parents && parents.length > 0){
+      debug('creating parent dirs', parents)
+      const mkParentDirs = parents.map(this.mkdir.bind(this))
+
+      await Promise.all( mkParentDirs )
+    }
+
     if(!oldIndex){
+
       await this.setIndex({
         ...this.index,
         objects: [].concat(this.index.objects, [newIndex])
@@ -594,6 +690,23 @@ class Bucket {
 
       await this.setIndex({...this.index })
     }
+  }
+
+  async isWriter(id=null){
+    //! @todo
+    return true
+  }
+
+  async isReader(id=null){
+    //! @todo
+    return true
+  }
+
+  async isWritable({path, file}={}){
+    const writer = await this.isWriter()
+    const fsWritable = this.root.storage.mode == IStorage.MODE_WRITE
+
+    return writer && fsWritable 
   }
 }
 

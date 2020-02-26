@@ -1,4 +1,3 @@
-const md5 = require('md5')
 const Path = require('path')
 const crypto = require('crypto')
 const Hoek = require('@hapi/hoek')
@@ -14,7 +13,7 @@ class File {
   constructor({bucket, id, filePath}){
     this.bucket = bucket
     this.id = new ObjectId(id)
-    this.filePath = Path.join('/', filePath)
+    this.filePath = Path.normalize(Path.join('/', filePath))
 
     this.content = ''
     this.metadata = null
@@ -254,10 +253,9 @@ class File {
   async updateLastChange(){
     const nowTime = (new Date()).toISOString()
 
-    //const md5sum = md5(this.content)
-    /*const hash = {
+    const hash = {
       sha256: crypto.createHash('sha256').update(this.content).digest('hex')
-    }*/
+    }
 
     await this.bucket.root.cacheWhoami()
 

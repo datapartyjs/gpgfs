@@ -76,25 +76,29 @@ class Gpgfs {
    * Load all matching bucket metadata
    * @method
    * @param {Object} options
+   * @param {string} options.id Bucket Id filter
    * @param {string} options.name Name filter
    * @returns {Bucket[]} Array of Bucket
    */
-  async getBuckets({name}={}){
+  async getBuckets({name, id}={}){
     let ids = await this.getBucketIds()
 
     let bucketList = []
-    for(const id of ids){
-      let bucket = this._bucketCache[id]
+    for(const bucketId of ids){
+      let bucket = this._bucketCache[bucketId]
       if(!bucket){
-        bucket = new GpgFsBucket({id, root:this})
+        bucket = new GpgFsBucket({id:bucketId, root:this})
         await bucket.open()
-        this._bucketCache[id] = bucket
+        this._bucketCache[bucketId] = bucket
       }
 
-      if(!name){
+      if(!name && !id){
         bucketList.push(bucket)
       }
       else if(bucket.metadata.bucketName == name){
+        bucketList.push(bucket)
+      }
+      else if(bucketId == id){
         bucketList.push(bucket)
       }
 

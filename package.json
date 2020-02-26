@@ -1,7 +1,7 @@
 {
   "name": "gpgfs",
   "private": false,
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "gpgfs",
   "author": "RosHub Inc. <code@roshub.io>",
   "license": "Apache-2.0",
@@ -15,7 +15,7 @@
   "scripts": {
     "clean": "rm -rf docs",
     "build-docs": "npx jsdoc -c jsdoc.json; cd docs; mv gpgfs/*/* ./; rm -rf gpgfs; cd -",
-    "mount": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-buckets.js",
+    "mount": "nodejs ./examples/mount-buckets.js",
     "mount-sftp": "DEBUG=gpgfs.*,-gpg*,-gpgfs.fuse-mount* nodejs ./examples/mount-sftp.js"
   },
   "main": "src/index.js",
@@ -27,9 +27,8 @@
     "debug": "^4.1.1",
     "fuse-native": "^2.0.4",
     "gpg-promised": "0.4.9",
-    "gpgfs-model": "0.2.3",
+    "gpgfs-model": "0.2.4",
     "jsonpath-plus": "^3.0.0",
-    "md5": "^2.2.1",
     "mkdirp": "^0.5.1",
     "node-fuse-bindings": "^2.12.4",
     "promisfy": "^1.2.0",
