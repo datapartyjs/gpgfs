@@ -2,28 +2,21 @@ const gpgfs = require('../src/index')
 
 async function main(){
   const securefs = new gpgfs()
-
   await securefs.open()
 
-  //! Trust user
-  await securefs.keychain.trustCard()
-
+  console.log('opening bucket')
   const bucket = await securefs.bucket('staging')
 
   if(!await bucket.exists()){
     console.log('creating bucket')
     await bucket.create()
   }
-
-  /*const file = await bucket.file('directory-1/foo/bar/file-test.txt')
-  const content = await file.read()
-  const metadata = await file.getMetadata()
-  console.log('file-content [', content, ']')*/
-
+  
   const fuse = new gpgfs.FuseMount('gpgfs')
   await fuse.start()
 
   await fuse.addBucket(bucket)
+  console.log('mounted')
 }
 
 

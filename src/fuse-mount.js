@@ -6,8 +6,8 @@ const Mode = require('./file-mode')
 
 const Debug = require('debug')
 const debug = Debug('gpgfs.fuse-mount')
-debug_readdir = Debug('gpgfs.fuse-mount.readdir')
-debug_getattr = Debug('gpgfs.fuse-mount.getattr')
+const debug_readdir = Debug('gpgfs.fuse-mount.readdir')
+const debug_getattr = Debug('gpgfs.fuse-mount.getattr')
 
 const Utils = require('./utils')
 
@@ -32,7 +32,8 @@ class FuseMount {
         create: this.oncreate.bind(this),
         release: this.onrelease.bind(this),
         truncate: this.ontruncate.bind(this),
-        ftruncate: this.onftruncate.bind(this)
+        ftruncate: this.onftruncate.bind(this),
+        mkdir: this.onmkdir.bind(this)
       },
       {debug: false}
     )
@@ -48,6 +49,20 @@ class FuseMount {
   async addBucket(bucket){
     debug('addBucket', bucket.id, bucket.name)
     this.buckets[bucket.name] = bucket
+  }
+
+  isRoot(path){
+    if (path === '/') {
+      return true
+    }
+
+    return false
+  }
+
+  getBucket(path){
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    return this.buckets[bucketName]
   }
 
   async mount(){
@@ -94,7 +109,7 @@ class FuseMount {
 
   async onreaddir(path, cb){
     debug_readdir('onreaddir', path)
-    if (path === '/') {
+    if (this.isRoot(path)) {
       //! Bucket listing
 
       const bucketNames = Object.keys(this.buckets)
@@ -121,7 +136,7 @@ class FuseMount {
     }
 
     debug_readdir('readdir bucket', bucket.name)
-    const {fileNames, fileAttrs} = this.readBucketDir(bucket, dir)
+    const {fileNames, fileAttrs} = await this.readBucketDir(bucket, dir)
 
     if(fileNames.length > 0){
       return cb(0, fileNames, fileAttrs)
@@ -174,7 +189,7 @@ class FuseMount {
     debug_getattr('getattr', 'dir', dir)
     debug_getattr('getattr', 'localPath', localPath)
 
-    const {fileNames, fileAttrs} = this.readBucketDir(bucket, dir)
+    const {fileNames, fileAttrs} = await this.readBucketDir(bucket, dir)
 
     debug_getattr('getattr', 'fileNames', fileNames)
     debug_getattr('getattr', 'fileAttrs', fileAttrs)
@@ -485,66 +500,68 @@ class FuseMount {
     cb(0)
   }
 
-  readBucketDir(bucket, dir){
-    const bucketPath = Path.join('/', dir.join('/'))
+  async onmkdir(path, mode, cb){
+    debug('mkdir', path, mode)
 
-    debug('readBucketDir ', bucket.name, bucketPath)
-
-    const localPaths = {}
-
-    for(const obj of bucket.index.objects){
-
-      debug('check file ', obj.path, ' startsWith(', bucketPath, ')')
-
-      if(obj.path.startsWith(bucketPath)){
-
-        const filePathToks = obj.path.replace(bucketPath, '').split('/')
-
-        if(filePathToks[0] == ''){ filePathToks.shift() }
-
-        const localPath = filePathToks[0]
-
-        debug('filePathtoks', filePathToks)
-        debug('obj.path', obj.path)
-
-        if(!localPaths[localPath]){
-          localPaths[localPath] = {
-            type: filePathToks.length > 1 ? 'dir' : 'file',
-            object: obj,
-            lastchanged: new Date(obj.lastchanged)
-          }
-        }
-        else {
-          if(Date(obj.lastchanged) > localPaths[localPath].lastchanged){
-            localPaths[localPath].obj = obj
-            localPaths[localPath].lastchanged = new Date(obj.lastchanged)
-          }
-        }
-      }
-
+    if(this.isRoot(path)){
+      debug('no custom dirs in mount root')
+      return cb(Fuse.ENOENT)
     }
 
-    const fileNames = []
-    const fileAttrs = []
+    debug('lookup bucket',path)
+    const bucket = this.getBucket(path)
 
-    const paths = Object.keys(localPaths)
-    for(const localPath of paths){
-      const info = localPaths[localPath]
+    if(!bucket){
+      debug('no such bucket', path)
+      return cb(Fuse.ENOENT)
+    }
 
-      debug('info [', localPath, ']', info)
-      
-      fileNames.push(localPath)
-      fileAttrs.push({
-        mtime: new Date( info.object.lastchanged ),
-        atime: new Date( info.object.lastchanged ),
-        ctime: new Date( info.object.created ),
-        nlink: 1,
-        size: (info.type == 'dir') ? 100 : info.object.size,
-        mode: new Mode({type:info.type, owner: { read: true, execute: (info.type=='dir'), write: true}}),
-        uid: process.getuid ? process.getuid() : 0,
-        gid: process.getgid ? process.getgid() : 0
+    const [empty, bucketName, ...dir] = path.split('/')
+
+    debug('mkdir', dir)
+
+    await bucket.mkdir(dir.join('/'))
+    return cb(0)
+  }
+
+  async readBucketDir(bucket, dir){
+
+    const dirContents = bucket.readDir( dir.join('/') )
+    
+
+    const writeAllowed = await bucket.isWritable()
+
+    const fileNames = [].concat(
+      dirContents.dirs,
+      Object.keys(dirContents.files)
+    )
+
+    const fileAttrs = [].concat(
+      dirContents.dirs.map( dir => {
+        return {
+          mtime: new Date( bucket.metadata.lastchanged ),
+          atime: new Date( bucket.metadata.lastchanged ),
+          ctime: new Date( bucket.metadata.created ),
+          nlink: 1,
+          size: 100,
+          mode: new Mode({type:'dir', owner: { read: true, execute: true, write: writeAllowed}}),
+          uid: process.getuid ? process.getuid() : 0,
+          gid: process.getgid ? process.getgid() : 0
+        }
+      }),
+      Object.values(dirContents.files).map( file => {
+        return {
+          mtime: new Date( file.lastchanged ),
+          atime: new Date( file.lastchanged ),
+          ctime: new Date( file.created ),
+          nlink: 1,
+          size: file.size,
+          mode: new Mode({type:'file', owner: { read: true, execute: false, write: writeAllowed}}),
+          uid: process.getuid ? process.getuid() : 0,
+          gid: process.getgid ? process.getgid() : 0
+        }
       })
-    }
+    )
     
     return {
       fileNames,

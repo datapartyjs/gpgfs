@@ -34,3 +34,17 @@ exports.uniqueArray = (arr)=>{
     return false
   })
 }
+
+exports.parentPaths = (filePath)=>{
+  const parents = []
+  const parsedPath = Path.parse(filePath)
+
+  let parentPath = parsedPath.dir
+  while(parentPath && parentPath != '/'){
+    parents.push( parentPath )
+
+    parentPath = parentPath.dir
+  }
+
+  return parents
+}
