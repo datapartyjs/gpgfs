@@ -714,6 +714,12 @@ class Bucket {
     return writer && fsWritable 
   }
 
+  /**
+   * Allow access for list of actors to type level of access
+   * @param {Object} options
+   * @param {('meta'|'readers'|'writers')} options.type Access type
+   * @param {string[])} options.list List of emails or fingerprints
+   */
   async addActor({type, list}){
     debug('addActor ', type, list)
 
