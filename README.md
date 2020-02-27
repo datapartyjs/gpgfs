@@ -65,14 +65,17 @@ Bucket content is stored in the `.gpgfs` directory, locatable anywhere on a host
 
 ```console
 .gpgfs/
-└── buckets/
-    └── bucket-5e193906a536b1515fcd427d/
+└── buckets
+    └── bucket-5e571d7969643103e4887f5f
         ├── index
+        ├── keys
+        │   ├── meta-read-key
+        │   └── read-key
         ├── metadata
-        ├── object-lastchange/
-        │   └── object-5e193908a536b1515fcd427e-lastchange
-        ├── object-meta/
-        │   └── object-5e193908a536b1515fcd427e-meta
-        └── objects/
-            └── object-5e193908a536b1515fcd427e
+        ├── object-lastchange
+        │   └── object-5e571d7e69643103e4887f60-lastchange
+        ├── object-meta
+        │   └── object-5e571d7e69643103e4887f60-meta
+        └── objects
+            └── object-5e571d7e69643103e4887f60
 ```
