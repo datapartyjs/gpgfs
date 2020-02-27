@@ -120,6 +120,7 @@ class Bucket {
     if(await this.root.fileExists( this.metadataPath )){ throw new Error('bucket metadata exists') }
 
     await this.root.touchDir(this.path)
+    await this.root.touchDir(this.path + '/keys')
     await this.root.touchDir(this.path + '/objects')
     await this.root.touchDir(this.path + '/object-meta')
     await this.root.touchDir(this.path + '/object-lastchange')
@@ -234,8 +235,8 @@ class Bucket {
   get path(){ return '/buckets/bucket-'+this.id.toHexString() }
   get indexPath(){return this.path+'/index' }
   get metadataPath(){return this.path+'/metadata' }
-  get readKeyPath(){return this.path+'/read-key' }
-  get metaReadKeyPath(){return this.path+'/meta-read-key' }
+  get readKeyPath(){return this.path+'/keys/read-key' }
+  get metaReadKeyPath(){return this.path+'/keys/meta-read-key' }
 
   async getReciepents(){
     await this.root.cacheWhoami()
@@ -718,7 +719,7 @@ class Bucket {
    * Allow access for list of actors to type level of access
    * @param {Object} options
    * @param {('meta'|'readers'|'writers')} options.type Access type
-   * @param {string[])} options.list List of emails or fingerprints
+   * @param {string[]} options.list List of emails or fingerprints
    */
   async addActor({type, list}){
     debug('addActor ', type, list)
