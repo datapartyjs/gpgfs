@@ -57,7 +57,7 @@ class Bucket {
     /*this.readKeychain = null
     this.metaKeychain = null*/
 
-    await this.loadKeys()
+    await this.loadReadKeys()
     
     this.name = this.metadata.bucketName
     this.opened = true
@@ -130,7 +130,7 @@ class Bucket {
 
     //create keys
     debug('create bucket keys')
-    await this.createKeys()
+    await this.createReadKeys()
 
     //import and trust in root keychain
     debug('import bucket keys', this.keyFingerprints)
@@ -313,7 +313,7 @@ class Bucket {
 
   
 
-  async initKeys(){
+  async initReadKeys(){
     if(this.readKeychain !== null){ throw 'refuse to overwrite existing read key' }
     if(this.metaKeychain !== null){ throw 'refuse to overwrite existing metadata key' }
 
@@ -326,8 +326,8 @@ class Bucket {
     ])
   }
 
-  async createKeys(){
-    await this.initKeys()
+  async createReadKeys(){
+    await this.initReadKeys()
 
     await Promise.all([
       this.readKeychain.generateKey({
@@ -350,10 +350,10 @@ class Bucket {
     this.keyPublics.read = await this.readKeychain.exportPublicKey(`bucket-readers-${this.id}@gpgfs.xyz`)
     this.keyPublics.meta = await this.metaKeychain.exportPublicKey(`bucket-metareaders-${this.id}@gpgfs.xyz`)
 
-    await this.saveKeys()
+    await this.saveReadKeys()
   }
 
-  async saveKeys(){
+  async saveReadKeys(){
     //! store read & metadata keys
     debug('saving bucket keys')
     const saveSecretText = async (keychain, path, to) =>{
@@ -380,9 +380,9 @@ class Bucket {
     ])
   }
 
-  async loadKeys(){
+  async loadReadKeys(){
     debug('loading bucket keys')
-    await this.initKeys()
+    await this.initReadKeys()
 
     let fromList = [ Hoek.reach(this, 'metadata.owner', {default: this.root.whoami}) ]
 
@@ -440,7 +440,7 @@ class Bucket {
   
   }
 
-  async unloadKeys(){
+  async unloadReadKeys(){
     //! @todo
     throw 'not implemented'
   }
@@ -456,7 +456,7 @@ class Bucket {
     return this.metadata
   }
 
-  async setMetadata(value){
+  async setMetadata(value={}){
     const nowTime = (new Date()).toISOString()
     let newMetadata = Object.assign({lastchanged: nowTime}, this.metadata, value)
 
@@ -697,6 +697,11 @@ class Bucket {
     return true
   }
 
+  async isOwner(id=null){
+    //! @todo
+    return true
+  }
+
   async isReader(id=null){
     //! @todo
     return true
@@ -707,6 +712,26 @@ class Bucket {
     const fsWritable = this.root.storage.mode == IStorage.MODE_WRITE
 
     return writer && fsWritable 
+  }
+
+  async addActor({type, list}){
+    debug('addActor ', type, list)
+
+    if(!await this.isOwner()){ throw new Error('must be owner to manipulate bucket metadata') }
+    
+    if(['meta', 'readers', 'writers'].indexOf(type) < 0){
+      throw new Error('addActor type invalid ['+type+']')
+    }
+
+    const emailFprs = await this.root.keychain.resolveEmails(list)
+
+    const fullList = [].concat( list, emailFprs )
+
+    if(!this.metadata[type]){  this.metadata[type] = [] }
+
+    this.metadata[type] = Utils.uniqueArray( this.metadata[type].concat( fullList ) )
+
+    await this.setMetadata()
   }
 }
 
