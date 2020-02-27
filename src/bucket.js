@@ -719,7 +719,7 @@ class Bucket {
 
     if(!await this.isOwner()){ throw new Error('must be owner to manipulate bucket metadata') }
     
-    if(['readers', 'writers'].indexOf(type) < 0){
+    if(['meta', 'readers', 'writers'].indexOf(type) < 0){
       throw new Error('addActor type invalid ['+type+']')
     }
 
@@ -727,13 +727,9 @@ class Bucket {
 
     const fullList = [].concat( list, emailFprs )
 
-    if(!this.metadata[type]){ 
-      this.metadata[type] = []
-    }
+    if(!this.metadata[type]){  this.metadata[type] = [] }
 
     this.metadata[type] = Utils.uniqueArray( this.metadata[type].concat( fullList ) )
-
-    this.metadata.meta = Utils.uniqueArray( this.metadata.meta.concat( fullList ) )
 
     await this.setMetadata()
   }
